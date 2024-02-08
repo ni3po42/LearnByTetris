@@ -1,0 +1,12 @@
+{
+  "spec_dir":"src",
+  "spec_files": [
+    "**/*.spec.js"
+  ],
+  "helpers": [
+    "helpers/**/*.?(m)js"
+  ],
+  "stopSpecOnExpectationFailure": false,
+  "random": true,
+  "jsLoader": "import"
+}
