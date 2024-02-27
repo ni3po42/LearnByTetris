@@ -11,6 +11,7 @@ Languages completed:
 * C++ - Haven't seriously touched c++ in 20 years; I last used the C++98 standard and was thrown into the future by building with C++23.
 
 Future Languages and platforms:
+* Go - Appears to have a short learning curve and built in concurrency features
 * Rust - I attempted this is Rust before, never completed it and lost the code (probably for the best). Now with C++ completed, I feel this may be more approachable now.
 * Zig - Zig is pretty awesome and has many features that improve upon my C implementation without going full blown C++.
 * Arduino - Years ago I created a PONG clone that runs on an Arduino Uno that actually generated a VGA video signal plus sound. I'd like to take what I learned from my C TETRIS implementation and improve upon my PONG code. I'd like to still output a VGA signal, but will likely create forks trying to implement SPI and/or i2c and connect to different outputs.
