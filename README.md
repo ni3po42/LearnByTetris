@@ -9,12 +9,14 @@ Languages completed:
 * Javascript - written to run in NodeJS in the terminal and in a browser sharing the same code base.
 * C - Very familiar with C, but wanted to use this to learn how to implement more complex ideas in a purely procedural language.
 * C++ - Haven't seriously touched c++ in 20 years; I last used the C++98 standard and was thrown into the future by building with C++23.
+* Go - I finished this the fastest; was originally going to use goroutines for the function generators, but found using closures to be more effective (even if they are a little less performant). I also found a bug in my original design and will update previous ports to reflect this.
 
 Future Languages and platforms:
-* Go - Appears to have a short learning curve and built in concurrency features
 * Rust - I attempted this is Rust before, never completed it and lost the code (probably for the best). Now with C++ completed, I feel this may be more approachable now.
 * Zig - Zig is pretty awesome and has many features that improve upon my C implementation without going full blown C++.
 * Arduino - Years ago I created a PONG clone that runs on an Arduino Uno that actually generated a VGA video signal plus sound. I'd like to take what I learned from my C TETRIS implementation and improve upon my PONG code. I'd like to still output a VGA signal, but will likely create forks trying to implement SPI and/or i2c and connect to different outputs.
 * FORTRAN - Only because a friend dared me to.
 * Java - I haven't touched Java in a while and though it's similar enough to other languages I use, it's changes much since I last used it.
+
+I plan on going back to fix random issues / missing features in the future (like, drop interval should increase as levels go up)
 
