@@ -10,9 +10,9 @@ Languages completed:
 * C - Very familiar with C, but wanted to use this to learn how to implement more complex ideas in a purely procedural language.
 * C++ - Haven't seriously touched c++ in 20 years; I last used the C++98 standard and was thrown into the future by building with C++23.
 * Go - I finished this the fastest; was originally going to use goroutines for the function generators, but found using closures to be more effective (even if they are a little less performant). I also found a bug in my original design and will update previous ports to reflect this.
+* Rust - Had to make some minimal changes in the design, but probably for the better. Infact, I'd like to apply some ideas I gained in this interation back into the c++ implementation. And as I had hoped, it was much more approachable after working through c++ again.
 
 Future Languages and platforms:
-* Rust - I attempted this is Rust before, never completed it and lost the code (probably for the best). Now with C++ completed, I feel this may be more approachable now.
 * Zig - Zig is pretty awesome and has many features that improve upon my C implementation without going full blown C++.
 * Arduino - Years ago I created a PONG clone that runs on an Arduino Uno that actually generated a VGA video signal plus sound. I'd like to take what I learned from my C TETRIS implementation and improve upon my PONG code. I'd like to still output a VGA signal, but will likely create forks trying to implement SPI and/or i2c and connect to different outputs.
 * FORTRAN - Only because a friend dared me to.
