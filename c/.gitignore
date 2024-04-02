@@ -1,0 +1,4 @@
+**/*.tests
+**/*.o
+**/*.test.o
+tetris

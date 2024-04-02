@@ -1,3 +1,7 @@
+/*
+    Game board implementation
+*/
+
 #include "board.h"
 #include <stdbool.h>
 #include <stdio.h>
@@ -64,6 +68,7 @@ void xorBoardCell(int row, int col, int data) {
     board[index] ^= data;
 }
 
+// internal callback to handle generator function
 static void scanBoard_genFunc(GeneratorHandle handle, void* argument) {
     
     BoardScanArguments* scanArguments = (BoardScanArguments*)argument;

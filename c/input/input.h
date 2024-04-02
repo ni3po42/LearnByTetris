@@ -20,6 +20,8 @@ void startInputLoop(EventStreamHandle eventStreamHandle);
 
 void startDropInterval(EventStreamHandle eventStreamHandle, interval_t interval);
 void resetDropInterval(interval_t interval);
+void initInput();
+void freeInput();
 //void stopDropInterval();
 
 #endif

@@ -8,6 +8,17 @@
 #include "../events/events.h"
 #include "input.h"
 
+void initInput() {
+
+    initscr();			/* Start curses mode 		*/
+	raw();				/* Line buffering disabled	*/
+
+}
+
+void freeInput() {
+    endwin();
+}
+
 static void* startInputLoop_func(void* input) {
  
     InputLoopArgument* argument = (InputLoopArgument*)input;

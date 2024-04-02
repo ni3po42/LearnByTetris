@@ -1,7 +1,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <ncurses.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -13,14 +12,14 @@
 #include "utilities.h"
 #include "board/board.h"
 
+/*
+    Initializes and prepares game to run
+*/
 int main(int argc, char *argv[]) 
 {
     initRand();
     
-    initscr();			/* Start curses mode 		*/
-	raw();				/* Line buffering disabled	*/
-	keypad(stdscr, TRUE);		/* We get F1, F2 etc..		*/
-	noecho();			/* Don't echo() while we do getch */
+    initInput();
     
     gamelevel_t level = 10;
     interval_t interval = getInterval(level);
@@ -64,6 +63,6 @@ int main(int argc, char *argv[])
     //freeGenerator(&dropInterval);
     freeEventStream(&eventStream);
     
-    endwin();
+    freeInput();
 }
 
