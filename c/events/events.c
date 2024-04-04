@@ -12,18 +12,22 @@
  * Private utilities
  */
  
+// locks changes to queue
 static void Q_lock(EventQueue* Q) {
     pthread_mutex_lock(&(Q->lock)); 
 }
 
+// unlocks changes to queue
 static void Q_unlock(EventQueue* Q) {
     pthread_mutex_unlock(&(Q->lock)); 
 }
- 
+
+// resolves opaque pointer to concrete pointer
 static EventQueue* eventStreamHandleToPtr(EventStreamHandle handle) {
     return (EventQueue*)handle;
 }
 
+// add new file descriptor to list. no mutex locking
 static void trackEventFileDescriptor(EventQueue* Q, event_fd_t efd) {
     EventFileDescriptorNode* newFDNode = (EventFileDescriptorNode*)malloc(sizeof(EventFileDescriptorNode));
     
@@ -40,6 +44,7 @@ static void trackEventFileDescriptor(EventQueue* Q, event_fd_t efd) {
     Q->efdsCount += 1;
 }
 
+// adds new thread to track for queue. no mutex locking
 static void trackThread(EventQueue* Q,  pthread_t thread_id) {
     ThreadIdNode* newThreadNode = (ThreadIdNode*)malloc(sizeof(ThreadIdNode));
     
@@ -54,18 +59,21 @@ static void trackThread(EventQueue* Q,  pthread_t thread_id) {
     }
 }
 
+// attempts to move a ref to a event node to the next in queue. no mutex locking
 static void moveToNext(EventQueue* Q, EventNode** finger) {
     
     if (*finger == NULL) {
         return;
     }
     
+    // if any are waiting...
     if ((*finger)->waitReadCount > 0) {
+        // decrement count and point ref to next in list
         (*finger)->waitReadCount -= 1;
         (*finger) = (*finger)->next;
     }
     
-    //trim tail
+    //trim tail if no others are waiting for tail anymore
     EventNode* temp = NULL;
     while(Q->tail != NULL && Q->tail->waitReadCount == 0) {
         temp = Q->tail;
@@ -78,7 +86,7 @@ static void moveToNext(EventQueue* Q, EventNode** finger) {
     
 }
 
-
+// adds message to queue. no mutex locking
 static EventNode* enqueue(EventQueue* Q, EventMessage message) {
     
     EventNode* newNode = (EventNode*) malloc(sizeof(EventNode));
@@ -99,6 +107,7 @@ static EventNode* enqueue(EventQueue* Q, EventMessage message) {
     return newNode;
 }
 
+// signals all open event file descriptors with given message data. no mutex locking
 static void signalEfds(EventQueue* Q, uint64_t sigMessage) {
     
     EventFileDescriptorNode* efdNode = Q->efds;
@@ -117,6 +126,7 @@ static void signalEfds(EventQueue* Q, uint64_t sigMessage) {
     }
 }
 
+// handles calling event listener when an event is signaled from event fd
 static void* wrap_listener(void* input) {
     listener_input_t* actualInput = (listener_input_t*) input;
     
@@ -135,10 +145,14 @@ static void* wrap_listener(void* input) {
         
         size = read(efd, &messageCount, sizeof(uint64_t));
     
+        // normally the number of events are written to the efd, so no passing of information.
+        // I get around this by passing 2 times the real count. IF the count is odd, that means
+        // a kill signal is issued and threads should all exit cleanly
         if (size != sizeof(uint64_t) || messageCount % 2 == 1) {
             return NULL;
         }
         
+        // since message count is 2 times the real, shift 1 to get actual count
         messageCount >>= 1;
         
         Q_lock(Q);
@@ -157,6 +171,7 @@ static void* wrap_listener(void* input) {
         Q_unlock(Q);
     }
 }
+
 
 static void wrap_generator(GeneratorHandle handle, void* argument) {
     listener_input_t* actualInput = (listener_input_t*) argument;
