@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
@@ -60,10 +59,10 @@ void TEST_handles_when_nexting_stopped_stream() {
     
     GeneratorHandle genHandle = eventStreamAsGenerator(handle);
     
-    EventMessage message1 = { .type = 3, .data = NULL };
+    EventMessage message1 = { .type = 3 };
     EventMessage messageRecieved;
     emit(handle, message1);
-    //sleep(1);
+
     //kill stream while gen handle is alive
     freeEventStream(&handle);
 
@@ -78,7 +77,7 @@ void TEST_can_yield_event() {
     
     GeneratorHandle genHandle = eventStreamAsGenerator(handle);
     
-    EventMessage messageSent = { .type = 3, .data = NULL };
+    EventMessage messageSent = { .type = 3 };
     EventMessage messageRecieved;
       
     sleep(1);  
@@ -98,7 +97,7 @@ void TEST_can_yield_event_multiple() {
     
     GeneratorHandle genHandle = eventStreamAsGenerator(handle);
     
-    EventMessage messageSent = { .type = 0, .data = NULL };
+    EventMessage messageSent = { .type = 0 };
     EventMessage messageRecieved;
     sleep(1);
     int i;
@@ -120,7 +119,7 @@ void TEST_can_yield_event_with_sleep() {
     GeneratorHandle genHandle = eventStreamAsGenerator(handle);
     
     sleep(1);
-    EventMessage messageSent = { .type = 4, .data = NULL };
+    EventMessage messageSent = { .type = 4 };
     EventMessage messageRecieved;
     
     emit(handle, messageSent);

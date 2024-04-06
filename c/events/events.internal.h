@@ -1,4 +1,3 @@
-
 #include <stdbool.h>
 
 // linked list defining the event queue of messages
@@ -25,10 +24,13 @@ typedef struct EventQueue {
 
     // mutex for locking changes to queue
     pthread_mutex_t lock;
+
+    // condition variable to signalling updates to queue
     pthread_cond_t update;
 
     // tracks how many generators are referencing the queue
     int refCount;
 
+    // flag is queue is accepting events or not
     bool isClosed;
 } EventQueue;

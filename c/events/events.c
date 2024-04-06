@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
-#include <sys/eventfd.h>
 #include <unistd.h>
 #include <stdbool.h>
 
@@ -35,7 +34,6 @@ static EventNode* enqueue(EventQueue* Q, EventMessage message) {
     
     newNode->message.type = message.type;
     newNode->refCount = Q->refCount;
-    newNode->message.data = message.data;
     
     if (Q->front == NULL) {
         Q->front = newNode;
@@ -57,10 +55,12 @@ static void wrap_generator(GeneratorHandle handle, void* argument) {
     while(!Q->isClosed) {
   
         if (finger == NULL) {
+            // wait for an update from the queue
             Q_lock(Q); 
             pthread_cond_wait(&Q->update, &Q->lock);
             finger = Q->front;
             Q_unlock(Q);
+
         } else {
             EventMessage message = finger->message;          
             
@@ -75,9 +75,12 @@ static void wrap_generator(GeneratorHandle handle, void* argument) {
 
             Q_lock(Q);
             
+            // generator is done with node, decrement count
             finger->refCount--;
 
             EventNode* temp = finger->next;
+
+            // if no generators are accessing node, perform clean up
             if (finger->refCount == 0) {
                 
                 if (finger == Q->front && finger != Q->back) {
@@ -89,11 +92,14 @@ static void wrap_generator(GeneratorHandle handle, void* argument) {
 
                 free(finger);
             }
+
             finger = temp;
             Q_unlock(Q);
             
         }
     }
+
+    // generator is terminating, decrement count in queue
     Q_lock(Q);
     Q->refCount--;
     Q_unlock(Q);
@@ -138,7 +144,8 @@ void freeEventStream(EventStreamHandle* handle) {
     if(Q->refCount > 0) {
         fprintf(stderr, "WARNING: not all generators freed before event queue free. Generator functionality is undefined.\n");
     }
-        
+    
+    // free all remaining nodes
     while(Q->front != NULL) {
         EventNode* temp = Q->front;
         Q->front = Q->front->next;
@@ -171,8 +178,8 @@ void emit(EventStreamHandle handle, EventMessage message) {
         return;
     }
 
+    enqueue(Q, message); 
 
-    enqueue(Q, message);        
     Q_unlock(Q);
 
     pthread_cond_broadcast(&Q->update);
@@ -184,8 +191,11 @@ GeneratorHandle eventStreamAsGenerator(EventStreamHandle handle) {
     
     Q_lock(Q);
   
+    // increment ref counter for generator
     Q->refCount++;
     
+    // with new generator, we'll need to increment all node refCounts to
+    // account for additional generator
     EventNode* temp = Q->front;
     while(temp != NULL) {
         temp->refCount++;

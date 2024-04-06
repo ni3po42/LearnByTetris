@@ -13,11 +13,10 @@ typedef uint64_t event_type;
  * A basic event message
 */
 typedef struct {
+    
     // type of event
     event_type type;
 
-    // currently only used for testing
-    void* data;
 } EventMessage;
 
 /**
