@@ -8,11 +8,17 @@
 #include "generator.h"
 #include "generator.internal.h"
 
+/**
+ * Generator function isolated scope is implemented with a pthread.
+ * Condition variables and mutex handle blocking and signaling
+*/
 
+// converts opaque handle into actual context pointer
 static GeneratorContext* handleToPtr(GeneratorHandle handle) {
     return (GeneratorContext*)handle;
 }
 
+// pthread start func for generator
 static void* generator_wrap(void* input) {
     
     GeneratorContext* context = (GeneratorContext*)input;
