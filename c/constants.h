@@ -13,6 +13,13 @@
 
 #define DELETE_MASK (0xf00)
 
-
+#define NONE 0
+#define DROP 1
+#define LEFT 2
+#define RIGHT 3
+#define TURN_LEFT 4
+#define TURN_RIGHT 5
+#define PAUSE 6
+#define EXIT_GAME 7
 
 #endif

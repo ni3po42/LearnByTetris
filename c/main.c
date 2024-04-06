@@ -33,7 +33,6 @@ int main(int argc, char *argv[])
     GeneratorHandle eventGeneratorHandle =  eventStreamAsGenerator(eventStream);
     
     startInputLoop(eventStream);
-    startEventStream(eventStream);
     
     GeneratorHandle gameLoop = doGameLoop(eventGeneratorHandle, level);
     
@@ -53,8 +52,6 @@ int main(int argc, char *argv[])
             //resetDropInterval(interval);
         }
     }
-    
-    stopEventStream(eventStream);
     
     renderCleanup();
     

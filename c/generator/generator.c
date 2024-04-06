@@ -85,12 +85,8 @@ bool GeneratorNext(GeneratorHandle handle, void* send, void* received) {
             memcpy(context->bufferIn, send, context->bufferInSize);    
         }
         
-     //     printf("NEXT sig YIELD (%p)\n", context);
-        pthread_cond_signal(&(context->nextCond));
-        
-   //   printf("NEXT sleeping (%p)\n", context);// (what, no signal?)
+        pthread_cond_signal(&(context->nextCond));        
         pthread_cond_wait(&(context->yieldCond), &(context->lock));  
-   //  printf("NEXT Wakeup (%p)\n", context);
      
         if (received != NULL && context->bufferOut != NULL) {
             memcpy(received, context->bufferOut, context->bufferOutSize);
@@ -110,7 +106,6 @@ bool GeneratorYield(GeneratorHandle handle, void* sent, void* recieved, bool isD
     pthread_mutex_lock(&(context->lock));
 
     if (context->isDone) {
-     //   printf("YIELD sig NEXT (%p)\n", context);
         pthread_cond_signal(&(context->yieldCond));
         pthread_mutex_unlock(&(context->lock));
         return false;
@@ -122,12 +117,8 @@ bool GeneratorYield(GeneratorHandle handle, void* sent, void* recieved, bool isD
   
     context->isDone = isDone;
     
-   // printf("YIELD sig NEXT (%p)\n", context);
-    pthread_cond_signal(&(context->yieldCond));
-    
-   // printf("YIELD sleeping (%p)\n", context);
-    pthread_cond_wait(&(context->nextCond), &(context->lock));    
-   //printf("YIELD wakeup (%p)\n", context);
+    pthread_cond_signal(&(context->yieldCond));    
+    pthread_cond_wait(&(context->nextCond), &(context->lock)); 
    
     if (recieved != NULL && context->bufferIn != NULL) {
         memcpy(recieved, context->bufferIn, context->bufferInSize);    
@@ -146,11 +137,11 @@ void freeGenerator(GeneratorHandle* handle) {
     
     GeneratorContext* context = handleToPtr(*handle);
     
-    pthread_mutex_unlock(&context->lock);
+    pthread_mutex_lock(&context->lock);
     context->isDone = true;
-    pthread_cond_signal(&context->nextCond);
     pthread_mutex_unlock(&context->lock);
-    
+    pthread_cond_signal(&context->nextCond);
+
     pthread_join(context->thread_id, NULL);
     
     if (pthread_cond_destroy(&context->nextCond) != 0) {                                       
