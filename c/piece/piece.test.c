@@ -6,7 +6,7 @@
 
 #include <assert.h>
 
-#include "piece.h"
+#include "piece.internal.h"
 #include "../generator/generator.h"
 #include "../constants.h"
 #include "../testing/utils.h"
@@ -33,38 +33,38 @@ void TEST_can_get_next_piece() {
     
     gen_next(handle, NULL, &pieceData);
     
-    assert(pieceData.currentPiece.id == PIECE_T);
-    assert(pieceData.nextPiece.id == PIECE_O);
+    assert(pieceData.currentPiece->id == PIECE_T);
+    assert(pieceData.nextPiece->id == PIECE_O);
     
     gen_next(handle, NULL, &pieceData);
     
-    assert(pieceData.currentPiece.id == PIECE_O);
-    assert(pieceData.nextPiece.id == PIECE_S);
+    assert(pieceData.currentPiece->id == PIECE_O);
+    assert(pieceData.nextPiece->id == PIECE_S);
     
     gen_next(handle, NULL, &pieceData);
     
-    assert(pieceData.currentPiece.id == PIECE_S);
-    assert(pieceData.nextPiece.id == PIECE_Z);
+    assert(pieceData.currentPiece->id == PIECE_S);
+    assert(pieceData.nextPiece->id == PIECE_Z);
     
     gen_next(handle, NULL, &pieceData);
     
-    assert(pieceData.currentPiece.id == PIECE_Z);
-    assert(pieceData.nextPiece.id == PIECE_J);
+    assert(pieceData.currentPiece->id == PIECE_Z);
+    assert(pieceData.nextPiece->id == PIECE_J);
     
     gen_next(handle, NULL, &pieceData);
     
-    assert(pieceData.currentPiece.id == PIECE_J);
-    assert(pieceData.nextPiece.id == PIECE_L);
+    assert(pieceData.currentPiece->id == PIECE_J);
+    assert(pieceData.nextPiece->id == PIECE_L);
     
     gen_next(handle, NULL, &pieceData);
     
-    assert(pieceData.currentPiece.id == PIECE_L);
-    assert(pieceData.nextPiece.id == PIECE_I);
+    assert(pieceData.currentPiece->id == PIECE_L);
+    assert(pieceData.nextPiece->id == PIECE_I);
     
     gen_next(handle, NULL, &pieceData);
     
-    assert(pieceData.currentPiece.id == PIECE_I);
-    assert(pieceData.nextPiece.id == PIECE_T);
+    assert(pieceData.currentPiece->id == PIECE_I);
+    assert(pieceData.nextPiece->id == PIECE_T);
     
     freeGenerator(&handle);
 }
@@ -96,7 +96,7 @@ void TEST_can_scan_piece_netural() {
     
     gen_next(handle, NULL, &pieceData);
     
-    assert(pieceData.currentPiece.id == PIECE_T);
+    assert(pieceData.currentPiece->id == PIECE_T);
     
     pieceScan(pieceData.currentPiece, true, PieceScanFunc_T_test);
     

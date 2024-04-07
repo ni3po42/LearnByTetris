@@ -4,7 +4,8 @@
 #include <stdint.h>
 #include "../generator/generator.h"
 
-// opaque pointer to event queue
+// opaque type to event queue
+struct EventQueue;
 typedef struct EventQueue* EventStreamHandle;
 
 typedef uint64_t event_type;

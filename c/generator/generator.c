@@ -13,11 +13,6 @@
  * Condition variables and mutex handle blocking and signaling
 */
 
-// converts opaque handle into actual context pointer
-static GeneratorContext* handleToPtr(GeneratorHandle handle) {
-    return (GeneratorContext*)handle;
-}
-
 // pthread start func for generator
 static void* generator_wrap(void* input) {
     
@@ -74,9 +69,8 @@ GeneratorHandle createGenerator(GeneratorFunction* func, size_t bufferInSize, si
     return (GeneratorHandle)context;
 }
 
-bool GeneratorNext(GeneratorHandle handle, void* send, void* received) {
-    GeneratorContext* context = handleToPtr(handle);
-       
+bool GeneratorNext(GeneratorHandle context, void* send, void* received) {
+
     pthread_mutex_lock(&(context->lock));
     
     if (context->isDone) {
@@ -106,9 +100,8 @@ bool GeneratorNext(GeneratorHandle handle, void* send, void* received) {
     return !isDone;
 }
 
-bool GeneratorYield(GeneratorHandle handle, void* sent, void* recieved, bool isDone) {
-    GeneratorContext* context = handleToPtr(handle);
-  
+bool GeneratorYield(GeneratorHandle context, void* sent, void* recieved, bool isDone) {
+
     pthread_mutex_lock(&(context->lock));
 
     if (context->isDone) {
@@ -136,12 +129,13 @@ bool GeneratorYield(GeneratorHandle handle, void* sent, void* recieved, bool isD
     return !isDone;
 }
 
-void freeGenerator(GeneratorHandle* handle) {
-    if (handle == NULL) {
+void freeGenerator(GeneratorHandle* handlePtr) {
+
+    GeneratorContext* context = *handlePtr;
+
+    if (context == NULL) {
         return;
     }
-    
-    GeneratorContext* context = handleToPtr(*handle);
     
     pthread_mutex_lock(&context->lock);
     context->isDone = true;
@@ -163,5 +157,5 @@ void freeGenerator(GeneratorHandle* handle) {
     free(context->bufferIn);
     free(context->bufferOut);
     free(context);
-    *handle = (GeneratorHandle)NULL;
+    *handlePtr = (GeneratorHandle)NULL;
 }

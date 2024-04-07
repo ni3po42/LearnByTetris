@@ -8,6 +8,16 @@
 #include "../events/events.h"
 #include "input.h"
 
+
+typedef struct DropIntervalInput {
+    interval_t interval;
+    EventStreamHandle eventStreamHandle;
+} DropIntervalInput;
+
+typedef struct InputLoopArgument {
+    EventStreamHandle eventStreamHandle;
+} InputLoopArgument;
+
 void initInput() {
 
     initscr();			/* Start curses mode 		*/

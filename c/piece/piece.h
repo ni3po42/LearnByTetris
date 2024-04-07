@@ -3,42 +3,10 @@
 
 #include "../generator/generator.h"
 
-#define PIECE_T 0
-#define PIECE_O 1
-#define PIECE_S 2
-#define PIECE_Z 3
-#define PIECE_J 4
-#define PIECE_L 5
-#define PIECE_I 6
-
 typedef int color_t;
 
-typedef struct Piece {
-    int* data;
-    int scanWidth;
-    int scanHeight;
-    
-    color_t color;
-    
-    int id;
-    
-    int _ordinals;
-    int _active;
-    
-    int _direction;
-    int _row;
-    int _col;
-    
-    int _prevDirection;
-    int _prevRow;
-    int _prevCol;
-
-} Piece;
-
-typedef struct PieceScanInput {
-    Piece* piece;
-    bool posNeutral;
-} PieceScanInput;
+// opaque type to encapsulate data
+typedef struct Piece Piece;
 
 typedef struct PieceScanData {
     int row;
@@ -47,17 +15,9 @@ typedef struct PieceScanData {
 } PieceScanData;
 
 typedef struct NextPieceData {
-    Piece nextPiece;
-    Piece currentPiece;
+    Piece* nextPiece;
+    Piece* currentPiece;
 } NextPieceData;
-
-typedef struct RawPieceData {
-    int field[16];
-    int width;
-    int height;
-    int ordinals;
-    int id;
-} RawPieceData;
 
 void constructPiece(Piece* piece, int* data, int scanHeight, int scanWidth, int ordinals, color_t color, int id);
 void initPiece(Piece* piece);
@@ -74,10 +34,12 @@ int getPieceWidth(const Piece* piece);
 int getPieceHeight(const Piece* piece);
 int getPieceRow(const Piece* piece);
 int getPieceCol(const Piece* piece);
+int getPieceId(const Piece* piece);
+color_t getPieceColr(const Piece* piece);
+int* getPieceData(const Piece* piece);
 
 typedef void PieceScanFunc(int row, int col, int data);
-void pieceScan(Piece piece, bool posNeutral, PieceScanFunc func);
-
+void pieceScan(const Piece* piece, bool posNeutral, PieceScanFunc func);
 
 GeneratorHandle pieces();
 

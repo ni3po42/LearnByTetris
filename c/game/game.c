@@ -9,6 +9,13 @@
 #include "../render/render.h"
 #include "game.h"
 
+// arguments for starting a game loop 
+typedef struct GameLoopArguments {
+    gamelevel_t startLevel;
+    GeneratorHandle eventStream;
+} GameLoopArguments;
+
+// map for number of rows (index) to a score (value at index)
 static int scoring[5] = {
      0,
      40,
@@ -17,21 +24,24 @@ static int scoring[5] = {
     1200
 };
 
+// get min of two integers
 static int minInt(int a, int b) {
     return a < b ? a : b;
 }
 
+// get max of two integers
 static int maxInt(int a, int b) {
     return a < b ? b : a;
 }
 
 void xorGameBoard(Piece* piece) {
-    pieceScan(*piece, false, xorBoardCell);
+    pieceScan(piece, false, xorBoardCell);
 }
 
+// determines of a given piece causes a collision on board in it's current state
 bool gameHasCollision(Piece* piece) {
     
-    GeneratorHandle handle = scanBoard(getPieceRow(piece), getPieceCol(piece), piece->scanHeight, piece->scanWidth);
+    GeneratorHandle handle = scanBoard(getPieceRow(piece), getPieceCol(piece), getPieceHeight(piece), getPieceWidth(piece));
     BoardScanData scanData;
     
     while(gen_next(handle, NULL, &scanData)) {
@@ -67,11 +77,12 @@ interval_t getInterval(gamelevel_t level) {
     return (1000 * frames) / 6;
 }
 
+// determines which rows, if any, are being collapsed
 static collapsed_rows_mask_t getClearRows(Piece* piece) {
     //pieces at most can span 4 rows;
     int rowCounts[4] = {0,0,0,0};
     int row = getPieceRow(piece);
-    GeneratorHandle handle = scanBoard(row, 0, piece->scanHeight, BOARD_COLS);
+    GeneratorHandle handle = scanBoard(row, 0, getPieceHeight(piece), BOARD_COLS);
     BoardScanData scanData;
     
     collapsed_rows_mask_t clearedRows = 0;
@@ -98,6 +109,7 @@ static collapsed_rows_mask_t getClearRows(Piece* piece) {
     return clearedRows;
 }
 
+// gets the number of collapsed rows in mask
 int countClearRows(collapsed_rows_mask_t clearedRows) {
     int count = 0;
     while(clearedRows) {
@@ -109,6 +121,7 @@ int countClearRows(collapsed_rows_mask_t clearedRows) {
     return count;
 }
 
+// define the actual function loop for generator
 static void doGameLoop_genFunc(GeneratorHandle gameLoop, void* argument) {
     
     GameLoopArguments* loopArgs = (GameLoopArguments*)argument;
@@ -137,9 +150,7 @@ static void doGameLoop_genFunc(GeneratorHandle gameLoop, void* argument) {
     
     while(gen_next(piecesHandle, NULL, &status.nextPieceData)){
        
-       
-       
-        currentPiece = &status.nextPieceData.currentPiece;
+        currentPiece = status.nextPieceData.currentPiece;
         
         //draw
         xorGameBoard(currentPiece);
@@ -183,7 +194,6 @@ static void doGameLoop_genFunc(GeneratorHandle gameLoop, void* argument) {
                     
                     break;
             }
-
 
             //draw new
             xorGameBoard(currentPiece);

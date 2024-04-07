@@ -43,6 +43,7 @@ int main(int argc, char *argv[])
         renderScreen(status);
      
         if (status.gameover) {
+            sleep(3);
             break;
         }
         

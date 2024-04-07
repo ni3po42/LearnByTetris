@@ -1,12 +1,14 @@
+#include <stdbool.h>
+#include <stdio.h>
+
 #include "../generator/generator.h"
 #include "../constants.h"
 
 #include "../utilities.h"
 
 #include "piece.h"
+#include "piece.internal.h"
 
-#include <stdbool.h>
-#include <stdio.h>
 
 RawPieceData RawPieces[] = {
     {
@@ -217,31 +219,53 @@ int getPieceCol(const Piece* piece) {
     return piece->_col;
 }
 
-void pieceScan(Piece piece, bool posNeutral, PieceScanFunc func) {
+
+int getPieceId(const Piece* piece) {
+    if (piece == NULL) {
+        return -1;
+    }
+    return piece->id;
+}
+
+color_t getPieceColr(const Piece* piece) {
+    if (piece == NULL) {
+        return -1;
+    }
+    return piece->color;
+}
+
+int* getPieceData(const Piece* piece) {
+    if (piece == NULL) {
+        return NULL;
+    }
+    return piece->data;
+}
+
+void pieceScan(const Piece* piece, bool posNeutral, PieceScanFunc func) {
     
-    int bound = piece.scanWidth * piece.scanHeight;
-    int scanWidth = piece.scanWidth;
+    int bound = piece->scanWidth * piece->scanHeight;
+    int scanWidth = piece->scanWidth;
     int index;
     int r, c;
     color_t color;
     
     for(index = 0; index < bound; index++) {
-        color = (piece.data)[index] ? piece.color : 0x00;
+        color = (piece->data)[index] ? piece->color : 0x00;
         
         if (color == 0){
             continue;
         }
 
-        color |= piece._active ? ACTIVE_MASK : STATIC_MASK;
+        color |= piece->_active ? ACTIVE_MASK : STATIC_MASK;
 
-        switch(piece._direction) {
+        switch(piece->_direction) {
             case 0:
                 r = index / scanWidth;
                 c = index % scanWidth;
                 break;
             case 1:
                 r = index % scanWidth;
-                c = piece.scanHeight - (index / scanWidth) - 1;
+                c = piece->scanHeight - (index / scanWidth) - 1;
                 break;
             case 2:
                 r = (bound - index - 1) / scanWidth;
@@ -254,20 +278,38 @@ void pieceScan(Piece piece, bool posNeutral, PieceScanFunc func) {
         }
 
         func(
-            r + (posNeutral ? 0 :piece._row),
-            c + (posNeutral ? 0 :piece._col),
+            r + (posNeutral ? 0 :piece->_row),
+            c + (posNeutral ? 0 :piece->_col),
             color
         );
     }
     
 }
 
+static void copyPiece(Piece* source, Piece* destination) {
+    destination->color = source->color;
+    destination->data = source->data;
+    destination->id = source->id;
+    destination->scanHeight = source->scanHeight;
+    destination->scanWidth = source->scanWidth;
+    destination->_active = source->_active;
+    destination->_col = source->_col;
+    destination->_row = source->_row;
+    destination->_direction = source->_direction;
+    destination->_ordinals = source->_ordinals;
+    destination->_prevCol = source->_prevCol;
+    destination->_prevDirection = source->_prevDirection;
+    destination->_prevRow = source->_prevRow;
+}
 
 static void nextPiece_genFunc(GeneratorHandle handle, void* argument) {
     
     bool currentPieceSet = false;
     NextPieceData nextPieceData;
     
+    nextPieceData.currentPiece = (Piece*)malloc(sizeof(Piece));
+    nextPieceData.nextPiece = (Piece*)malloc(sizeof(Piece));
+
     while(true) {
     
         int nextIndex = getRandomIntFromRange(0,6);
@@ -275,10 +317,10 @@ static void nextPiece_genFunc(GeneratorHandle handle, void* argument) {
         RawPieceData* rawData = &RawPieces[nextIndex];
         color_t color = nextIndex + 1;
         
-        constructPiece(&nextPieceData.nextPiece, rawData->field, rawData->height, rawData->width, rawData->ordinals, color, rawData->id);
+        constructPiece(nextPieceData.nextPiece, rawData->field, rawData->height, rawData->width, rawData->ordinals, color, rawData->id);
         
         if (currentPieceSet) {
-            initPiece(&nextPieceData.currentPiece);
+            initPiece(nextPieceData.currentPiece);
             
             
             if(!gen_yield(handle, &nextPieceData, NULL)) {
@@ -289,8 +331,11 @@ static void nextPiece_genFunc(GeneratorHandle handle, void* argument) {
             currentPieceSet = true;
         }
         
-        nextPieceData.currentPiece = nextPieceData.nextPiece;
+        copyPiece(nextPieceData.nextPiece, nextPieceData.currentPiece);
     }
+
+    free(nextPieceData.currentPiece);
+    free(nextPieceData.nextPiece);
     
 }
 

@@ -44,17 +44,8 @@ static void drawCell(int row, int col, int data, int rowOffset, int colOffset) {
         attron(COLOR_PAIR(8));
     }
     
-    //mvprintw(row + rowOffset, (col + colOffset) * 2, "██");
-    //mvprintw(row + rowOffset, (col + colOffset) * 2, "00");
-    
     mvprintw(row + rowOffset, (col + colOffset) * 2, "  ");
     
-    
-    //mvaddch(row + rowOffset, (col + colOffset) * 2, ACS_BLOCK);
-    //mvaddch(row + rowOffset, (col + colOffset) * 2 + 1, ACS_BLOCK);
-    
-    //mvprintw(row + rowOffset, (col + colOffset) * 2, "\u2588");
-    //mvaddstr(row + rowOffset, (col + colOffset) * 2, "\u2588");
     if (color != 0) {
         attroff(A_REVERSE);
         attroff(COLOR_PAIR(color));
@@ -80,8 +71,8 @@ static void renderNextPiece_draw(int row, int col, int data) {
 
 static void renderNextPiece(NextPieceData nextPieceData) {
     
-    if (nextPieceId != nextPieceData.nextPiece.id) {
-        nextPieceId = nextPieceData.nextPiece.id;
+    if (nextPieceId != getPieceId(nextPieceData.nextPiece)) {
+        nextPieceId = getPieceId(nextPieceData.nextPiece);
         
         pieceScan(nextPieceData.currentPiece, true, renderNextPiece_erase);
         pieceScan(nextPieceData.nextPiece, true, renderNextPiece_draw);    
