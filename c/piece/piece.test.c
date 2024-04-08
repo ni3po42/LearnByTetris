@@ -70,7 +70,7 @@ void TEST_can_get_next_piece() {
 }
 
 
-void PieceScanFunc_T_test(int row, int col, int data) {
+void PieceScanFunc_T_test(int row, int col, CellData data) {
     
     int index = row * 3 + col;
     

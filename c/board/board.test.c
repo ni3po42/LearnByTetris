@@ -15,7 +15,7 @@
 
 void TEST_can_scan_board() {
     
-    constructBoard(-1);
+    constructBoard(CONSTRUCT_WHOLE_BOARD);
     
     GeneratorHandle boardHandle = scanBoard(0,0,BOARD_ROWS, BOARD_COLS);
     BoardScanData scanData;

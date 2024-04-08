@@ -26,7 +26,7 @@ typedef struct GameStatus {
     int score;
     
     // bit field of rows that collapsed
-    collapsed_rows_mask_t clearRows;
+    collapsed_rows_t clearRows;
     
     // the next piece to drop
     NextPieceData nextPieceData;

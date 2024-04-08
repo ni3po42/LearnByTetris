@@ -12,14 +12,14 @@
 
 // defines number of cells on board
 #define BOARD_SIZE (BOARD_COLS*BOARD_ROWS)
-// color of wall
-#define WALL_COLOR 0x0F
+
+typedef uint8_t CellData;
 
 // defines board to be array of integers
-typedef int Board[BOARD_SIZE];
+typedef CellData Board[BOARD_SIZE];
 
 // used as bit-field to track which rows are to be collapsed
-typedef uint64_t collapsed_rows_mask_t;
+typedef uint32_t collapsed_rows_t;
 
 // arguments to pass board's scan function
 typedef struct BoardScanArguments {
@@ -33,14 +33,14 @@ typedef struct BoardScanArguments {
 typedef struct BoardScanData {
     int row;
     int col;
-    int data;
+    CellData data;
     bool collision;
     
 } BoardScanData;
 
 /*
     initializes the game board to be empty with walls/bottom
-    @param stopIndex - boards clears from top to bottom, left to right. specifies cell index to stop clearing. value of -1 clears all
+    @param stopIndex - boards clears from top to bottom, left to right. specifies cell index to stop clearing. Constant CONSTRUCT_WHOLE_BOARD clears all
 */
 void constructBoard(int stopIndex);
 
@@ -48,7 +48,7 @@ void constructBoard(int stopIndex);
     clears specified rows from board and collapses remaining rows
     @param rows - bit field representing which rows to collapse
 */
-void collapseBoard(collapsed_rows_mask_t rows);
+void collapseBoard(collapsed_rows_t rows);
 
 /*
     get cell data from game board
@@ -56,7 +56,7 @@ void collapseBoard(collapsed_rows_mask_t rows);
     @param col - integer between 0 and COLS
     @return - masked data containing active/static states, is wall, and cell color
 */
-int getBoardCell(int row, int col);
+CellData getBoardCell(int row, int col);
 
 /*
     sets cell data for game board
@@ -64,7 +64,7 @@ int getBoardCell(int row, int col);
     @param col - ingeger between 0 and COLS
     @param data - masked data containing active/static states, is wall, and cell color
 */
-void setBoardCell(int row, int col, int data);
+void setBoardCell(int row, int col, CellData data);
 
 /*
     applies an XOR operation with the board data at a row,col and data. new value saved to cell row,col
@@ -72,7 +72,7 @@ void setBoardCell(int row, int col, int data);
     @param col - ingeger between 0 and COLS
     @param data - masked data containing active/static states, is wall, and cell color to be XORed
 */
-void xorBoardCell(int row, int col, int data);
+void xorBoardCell(int row, int col, CellData data);
 
 /*
     generating function that yields data within given bounds of board
@@ -86,10 +86,10 @@ GeneratorHandle scanBoard(int row, int col, int height, int width);
 
 /*
     include new row in given collapsed row mask
-    @param rowMask - current mask to add row to
+    @param collapsedRows - current mask to add row to
     @param row - row to add
-    @return new mask with row added
+    @return new collapsed_row_t with row added
 */
-int addCollapseRowMask(collapsed_rows_mask_t rowMask, int row);
+int addCollapsedRow(collapsed_rows_t collapsedRows, int row);
 
 #endif

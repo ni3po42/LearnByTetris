@@ -33,9 +33,9 @@ static void drawText(const char* text, int row, int col) {
     mvprintw(row, col, text);
 }
 
-static void drawCell(int row, int col, int data, int rowOffset, int colOffset) {
+static void drawCell(int row, int col, CellData data, int rowOffset, int colOffset) {
     
-    int color = (data & 0x07);
+    int color = (data & COLOR_MASK);
     
     if (color != 0) {
         attron(COLOR_PAIR(color));
@@ -61,11 +61,11 @@ static void drawInteger(int value, int row, int col) {
     drawText(str, row, col);
 }
 
-static void renderNextPiece_erase(int row, int col, int data) {
-    drawCell(row, col, 0x00, NEXTPIECE_OFFSET_ROW, NEXTPIECE_OFFSET_COL);
+static void renderNextPiece_erase(int row, int col, CellData unsued) {
+    drawCell(row, col, EMPTY_CELL_DATA, NEXTPIECE_OFFSET_ROW, NEXTPIECE_OFFSET_COL);
 }
 
-static void renderNextPiece_draw(int row, int col, int data) {
+static void renderNextPiece_draw(int row, int col, CellData data) {
     drawCell(row, col, data, NEXTPIECE_OFFSET_ROW, NEXTPIECE_OFFSET_COL);
 }
 

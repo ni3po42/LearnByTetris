@@ -78,14 +78,14 @@ interval_t getInterval(gamelevel_t level) {
 }
 
 // determines which rows, if any, are being collapsed
-static collapsed_rows_mask_t getClearRows(Piece* piece) {
+static collapsed_rows_t getClearRows(Piece* piece) {
     //pieces at most can span 4 rows;
     int rowCounts[4] = {0,0,0,0};
     int row = getPieceRow(piece);
     GeneratorHandle handle = scanBoard(row, 0, getPieceHeight(piece), BOARD_COLS);
     BoardScanData scanData;
     
-    collapsed_rows_mask_t clearedRows = 0;
+    collapsed_rows_t clearedRows = 0;
     
     int index;
     int val;
@@ -110,7 +110,7 @@ static collapsed_rows_mask_t getClearRows(Piece* piece) {
 }
 
 // gets the number of collapsed rows in mask
-int countClearRows(collapsed_rows_mask_t clearedRows) {
+int countClearRows(collapsed_rows_t clearedRows) {
     int count = 0;
     while(clearedRows) {
         if ((1 & clearedRows) == 1) {

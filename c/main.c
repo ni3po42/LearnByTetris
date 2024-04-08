@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
     interval_t interval = getInterval(level);
     GameStatus status;
 
-    constructBoard(-1);
+    constructBoard(CONSTRUCT_WHOLE_BOARD);
 
     renderInit();
 
