@@ -2,8 +2,6 @@
 #define __constants_h_
 
 
-
-
 #define BOARD_ROWS (21)
 #define BOARD_COLS (12)
 
@@ -28,5 +26,14 @@
 #define TURN_RIGHT 5
 #define PAUSE 6
 #define EXIT_GAME 7
+
+
+#define PIECE_T 0
+#define PIECE_O 1
+#define PIECE_S 2
+#define PIECE_Z 3
+#define PIECE_J 4
+#define PIECE_L 5
+#define PIECE_I 6
 
 #endif

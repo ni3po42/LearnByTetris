@@ -17,8 +17,7 @@
 */
 int main(int argc, char *argv[]) 
 {
-    initRand();
-    
+    initRand();    
     initInput();
     
     gamelevel_t level = 10;

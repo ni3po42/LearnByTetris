@@ -8,7 +8,48 @@
 
 #include "../generator/generator.h"
 
+/**
+ * private apis
+*/
+
 static Board board;
+
+// internal callback to handle generator function
+static void scanBoard_genFunc(GeneratorHandle handle, void* argument) {
+    
+    BoardScanArguments* scanArguments = (BoardScanArguments*)argument;
+    int r;
+    int c;
+    int height = scanArguments->height;
+    int width = scanArguments->width;
+    int row = scanArguments->row;
+    int col = scanArguments->col;
+    
+    free(scanArguments);
+    
+    BoardScanData data;
+    int index;
+    
+    for(r = row; r < row + height; r++) {
+        for(c = col; c < col + width; c++) {
+            
+            index = r * BOARD_COLS + c;
+            
+            data.data = board[index];
+            data.collision = (data.data & (ACTIVE_MASK | STATIC_MASK)) == (ACTIVE_MASK | STATIC_MASK);
+            data.row = r;
+            data.col = c;
+          
+            if (!gen_yield(handle, &data, NULL)) {
+                return;
+            }
+        }
+    }
+}
+
+/**
+ * public apis
+*/
 
 void constructBoard(int stopIndex) {
     
@@ -82,39 +123,6 @@ void setBoardCell(int row, int col, CellData data) {
 void xorBoardCell(int row, int col, CellData data) {
     int index = row * BOARD_COLS + col;
     board[index] ^= data;
-}
-
-// internal callback to handle generator function
-static void scanBoard_genFunc(GeneratorHandle handle, void* argument) {
-    
-    BoardScanArguments* scanArguments = (BoardScanArguments*)argument;
-    int r;
-    int c;
-    int height = scanArguments->height;
-    int width = scanArguments->width;
-    int row = scanArguments->row;
-    int col = scanArguments->col;
-    
-    free(scanArguments);
-    
-    BoardScanData data;
-    int index;
-    
-    for(r = row; r < row + height; r++) {
-        for(c = col; c < col + width; c++) {
-            
-            index = r * BOARD_COLS + c;
-            
-            data.data = board[index];
-            data.collision = (data.data & (ACTIVE_MASK | STATIC_MASK)) == (ACTIVE_MASK | STATIC_MASK);
-            data.row = r;
-            data.col = c;
-          
-            if (!gen_yield(handle, &data, NULL)) {
-                return;
-            }
-        }
-    }
 }
 
 GeneratorHandle scanBoard(int row, int col, int height, int width) {

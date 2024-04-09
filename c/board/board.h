@@ -13,6 +13,16 @@
 // defines number of cells on board
 #define BOARD_SIZE (BOARD_COLS*BOARD_ROWS)
 
+/** 
+ * Cell data for piece or board information. CellData is a bit field
+ * 0wsa0ccc
+ * w - wall bit. specifies if cell is a wall
+ * s - static. specifies if cell is static (no longer moving)
+ * a - active. specifies if cell is active (still moving). 
+ * ccc - color code for cell. client defined color mapping
+ * 0 - unused bits
+ * if a and c are 1, than a collision has occurred
+*/
 typedef uint8_t CellData;
 
 // defines board to be array of integers

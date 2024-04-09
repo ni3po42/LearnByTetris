@@ -9,6 +9,10 @@
 #include "../render/render.h"
 #include "game.h"
 
+/**
+ * private apis
+*/
+
 // arguments for starting a game loop 
 typedef struct GameLoopArguments {
     gamelevel_t startLevel;
@@ -34,12 +38,13 @@ static int maxInt(int a, int b) {
     return a < b ? b : a;
 }
 
-void xorGameBoard(Piece* piece) {
+// xor's board data with piece's data
+static void xorGameBoard(Piece* piece) {
     pieceScan(piece, false, xorBoardCell);
 }
 
 // determines of a given piece causes a collision on board in it's current state
-bool gameHasCollision(Piece* piece) {
+static bool gameHasCollision(Piece* piece) {
     
     GeneratorHandle handle = scanBoard(getPieceRow(piece), getPieceCol(piece), getPieceHeight(piece), getPieceWidth(piece));
     BoardScanData scanData;
@@ -54,27 +59,6 @@ bool gameHasCollision(Piece* piece) {
     freeGenerator(&handle);
     
     return false;
-}
-
-interval_t getInterval(gamelevel_t level) {
-    int frames;
-    if( level <= 8) {
-        frames = (48 - level * 5);
-    } else if (level == 9) {
-        frames = 6;
-    } else if (level <= 12) {
-        frames = 5;
-    } else if (level <= 15) {
-        frames = 4;
-    } else if (level <= 18) {
-        frames = 3;
-    } else if (level <= 28) {
-        frames = 2;
-    } else {
-        frames = 1;
-    }
-
-    return (1000 * frames) / 6;
 }
 
 // determines which rows, if any, are being collapsed
@@ -110,7 +94,7 @@ static collapsed_rows_t getClearRows(Piece* piece) {
 }
 
 // gets the number of collapsed rows in mask
-int countClearRows(collapsed_rows_t clearedRows) {
+static int countClearRows(collapsed_rows_t clearedRows) {
     int count = 0;
     while(clearedRows) {
         if ((1 & clearedRows) == 1) {
@@ -140,7 +124,6 @@ static void doGameLoop_genFunc(GeneratorHandle gameLoop, void* argument) {
     
     free(argument);
     
-    int linesToClear = minInt(status.level * 10 + 10, maxInt(100, status.level * 10 - 50));
     int linesCleared = 0;
     bool wasDropped = false;
     int clearRowCount = 0;
@@ -148,8 +131,11 @@ static void doGameLoop_genFunc(GeneratorHandle gameLoop, void* argument) {
 
     GeneratorHandle piecesHandle = pieces();
     
+    // get next pieces
     while(gen_next(piecesHandle, NULL, &status.nextPieceData)){
-       
+        
+        int linesToClear = minInt(status.level * 10 + 10, maxInt(100, status.level * 10 - 50));
+    
         currentPiece = status.nextPieceData.currentPiece;
         
         //draw
@@ -157,11 +143,13 @@ static void doGameLoop_genFunc(GeneratorHandle gameLoop, void* argument) {
         
         status.gameover = gameHasCollision(currentPiece);
 
+        // yield game status. if abort, clean up
         if(!gen_yield(gameLoop, &status, NULL)) {
             freeGenerator(&piecesHandle);
             return;
         }
    
+        // get next event
         while(gen_next(stream, NULL, &eventData)) {
             
             //clear
@@ -185,13 +173,11 @@ static void doGameLoop_genFunc(GeneratorHandle gameLoop, void* argument) {
                 case RIGHT: 
                     rightPiece(currentPiece); 
                     break;
-                case EXIT_GAME: 
-                     
+                case EXIT_GAME:                      
                     if(!gen_return(gameLoop, &status, NULL)) {
                         freeGenerator(&piecesHandle);
                         return;
-                    }
-                    
+                    }                    
                     break;
             }
 
@@ -201,8 +187,7 @@ static void doGameLoop_genFunc(GeneratorHandle gameLoop, void* argument) {
             if (gameHasCollision(currentPiece)) {
                 
                 //clear
-                xorGameBoard(currentPiece);
-                
+                xorGameBoard(currentPiece);                
                 revertPiece(currentPiece);
                 
                 if (wasDropped) {
@@ -223,11 +208,8 @@ static void doGameLoop_genFunc(GeneratorHandle gameLoop, void* argument) {
         }
         
         status.clearRows = getClearRows(currentPiece);
-
         clearRowCount = countClearRows(status.clearRows);
-
         status.score += scoring[clearRowCount] * (status.level + 1);
-
         linesCleared += clearRowCount;
 
         int bound = linesToClear + ((status.level - startLevel) * 10);
@@ -239,8 +221,7 @@ static void doGameLoop_genFunc(GeneratorHandle gameLoop, void* argument) {
         
         if (!gen_yield(gameLoop, &status, NULL)) {
             freeGenerator(&piecesHandle);
-            return;
-            
+            return;            
         }
         
         collapseBoard(status.clearRows);
@@ -248,6 +229,31 @@ static void doGameLoop_genFunc(GeneratorHandle gameLoop, void* argument) {
     
     freeGenerator(&piecesHandle);
     
+}
+
+/**
+ * public apis
+*/
+
+interval_t getInterval(gamelevel_t level) {
+    int frames;
+    if( level <= 8) {
+        frames = (48 - level * 5);
+    } else if (level == 9) {
+        frames = 6;
+    } else if (level <= 12) {
+        frames = 5;
+    } else if (level <= 15) {
+        frames = 4;
+    } else if (level <= 18) {
+        frames = 3;
+    } else if (level <= 28) {
+        frames = 2;
+    } else {
+        frames = 1;
+    }
+
+    return (1000 * frames) / 6;
 }
 
 GeneratorHandle doGameLoop(GeneratorHandle eventStreamHandle, gamelevel_t startLevel) {

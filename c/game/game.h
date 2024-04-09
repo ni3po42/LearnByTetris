@@ -33,12 +33,6 @@ typedef struct GameStatus {
     
 } GameStatus;
 
-/** 
- * XOR's a given piece's data with data in game board
- * @param piece pointer to Piece to XOR data
-*/
-void xorGameBoard(Piece* piece);
-
 /**
  * Map a game level to an interval
  * @param level level to determine an interval for
