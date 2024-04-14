@@ -24,7 +24,8 @@ RawPieceData RawPieces[] = {
         .height = 3,
         .width = 3,
         .ordinals = 4,
-        .id = PIECE_T
+        .id = PIECE_T,
+        .color = 1
     },
     {
         .field = {
@@ -34,7 +35,8 @@ RawPieceData RawPieces[] = {
         .height = 2,
         .width = 2,
         .ordinals = 1,
-        .id = PIECE_O
+        .id = PIECE_O,
+        .color = 2
     },
     {
         .field = {
@@ -45,7 +47,8 @@ RawPieceData RawPieces[] = {
         .height = 3,
         .width = 3,
         .ordinals = 2,
-        .id = PIECE_S
+        .id = PIECE_S,
+        .color = 3
     },
     {
         .field = {
@@ -56,7 +59,8 @@ RawPieceData RawPieces[] = {
         .height = 3,
         .width = 3,
         .ordinals = 2,
-        .id = PIECE_Z
+        .id = PIECE_Z,
+        .color = 4
     },
     {
         .field = {
@@ -67,7 +71,8 @@ RawPieceData RawPieces[] = {
         .height = 3,
         .width = 3,
         .ordinals = 4,
-        .id = PIECE_J
+        .id = PIECE_J,
+        .color = 5
     },
     {
         .field = {
@@ -78,7 +83,8 @@ RawPieceData RawPieces[] = {
         .height = 3,
         .width = 3,
         .ordinals = 4,
-        .id = PIECE_L
+        .id = PIECE_L,
+        .color = 6
     },
     {
         .field = {
@@ -90,36 +96,29 @@ RawPieceData RawPieces[] = {
         .height = 4,
         .width = 4,
         .ordinals = 2,
-        .id = PIECE_I
+        .id = PIECE_I,
+        .color = 7
     }
 };
 
 // initializes a piece to be used on the game board
-static void initPiece(Piece* piece) {
-    if (piece == NULL){
-        return;
-    }
-    
-    piece->_row = 0;
-    piece->_col = (BOARD_COLS / 2) - 1;
-    piece->_prevRow = 0;
-    piece->_prevCol = (BOARD_COLS / 2) - 1;
-    piece->_prevDirection = 0;
-}
+// static void initPiece(Piece* piece) {
+   
+// }
 
 // builds piece based on raw piece data
-static void constructPiece(Piece* piece, int* data, int scanHeight, int scanWidth, int ordinals, color_t color, int id) {
+static void constructPiece(Piece* piece, RawPieceData* data) {
     if (piece == NULL){
         return;
     }
     
-    piece->data = data;
-    piece->scanWidth = scanWidth;
-    piece->scanHeight = scanHeight;
-    piece->id = id;
-    piece->color = color;
+    piece->data = data->field;
+    piece->scanWidth = data->width;
+    piece->scanHeight = data->height;
+    piece->id = data->id;
+    piece->color = data->color;
     
-    piece->_ordinals = ordinals;
+    piece->_ordinals = data->ordinals;
     piece->_direction = 0;
     piece->_active = true;
     
@@ -141,56 +140,54 @@ static void savePieceState(Piece* piece) {
 }
 
 // copies state of one piece to another
-static void copyPiece(Piece* source, Piece* destination) {
+static void promotePiece(Piece* source, Piece* destination) {
     destination->color = source->color;
     destination->data = source->data;
     destination->id = source->id;
     destination->scanHeight = source->scanHeight;
     destination->scanWidth = source->scanWidth;
     destination->_active = source->_active;
-    destination->_col = source->_col;
-    destination->_row = source->_row;
+    //destination->_col = source->_col;
+    //destination->_row = source->_row;
     destination->_direction = source->_direction;
     destination->_ordinals = source->_ordinals;
-    destination->_prevCol = source->_prevCol;
-    destination->_prevDirection = source->_prevDirection;
-    destination->_prevRow = source->_prevRow;
+    //destination->_prevCol = source->_prevCol;
+    //destination->_prevDirection = source->_prevDirection;
+    //destination->_prevRow = source->_prevRow;
+    
+    destination->_row = 0;
+    destination->_col = (BOARD_COLS / 2) - 1;
+    destination->_prevRow = 0;
+    destination->_prevCol = (BOARD_COLS / 2) - 1;
+    destination->_prevDirection = 0;
 }
 
 // generator function for creating infinite sequence of pieces
-static void nextPiece_genFunc(GeneratorHandle handle, void* argument) {
+static void nextPiece_genFunc(GeneratorHandle* handle) {
+    gen_restore(handle, Piece, currentPiece);
+    gen_restore(handle, Piece, nextPiece);       
+    gen_frame_init(handle, void, argument);
     
-    bool currentPieceSet = false;
-    NextPieceData nextPieceData;
-    
-    Piece currentPiece;
-    Piece nextPiece;
-
-    nextPieceData.currentPiece = &currentPiece;
-    nextPieceData.nextPiece = &nextPiece;
+    int nextIndex = getRandomIntFromRange(0,6);              
+    constructPiece(nextPiece, &RawPieces[nextIndex]);
 
     while(true) {
-    
-        int nextIndex = getRandomIntFromRange(0,6);
+        promotePiece(nextPiece, currentPiece);
+        // initPiece(currentPiece);
         
-        RawPieceData* rawData = &RawPieces[nextIndex];
-        color_t color = nextIndex + 1;
-        
-        constructPiece(nextPieceData.nextPiece, rawData->field, rawData->height, rawData->width, rawData->ordinals, color, rawData->id);
-        
-        if (currentPieceSet) {
-            initPiece(nextPieceData.currentPiece);
-                        
-            if(!gen_yield(handle, &nextPieceData, NULL)) {
-                break;
-            }
+        nextIndex = getRandomIntFromRange(0,6);              
+        constructPiece(nextPiece, &RawPieces[nextIndex]);
+        // to tomorrow tim, since we are copying nextPieceData literally,
+        // it means the pointers are copied, we think that by the time we
+        // get the value, the data the pointers are pointing to have already
+        // changed!
+        NextPieceData nextPieceData = {
+            .currentPiece = currentPiece,
+            .nextPiece = nextPiece
+        };
             
-        } else {
-            currentPieceSet = true;
-        }
-        
-        copyPiece(nextPieceData.nextPiece, nextPieceData.currentPiece);
-    }
+        gen_yield(handle, &nextPieceData);
+    }    
 }
 
 /**
@@ -344,6 +341,6 @@ void pieceScan(const Piece* piece, bool posNeutral, PieceScanFunc func) {
     
 }
 
-GeneratorHandle pieces() {
-    return gen_func(nextPiece_genFunc, void, NextPieceData, NULL);
+GeneratorHandle* pieces() {
+    return gen_func(nextPiece_genFunc, NextPieceData, NULL);
 }

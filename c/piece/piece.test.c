@@ -14,7 +14,6 @@
 //mocks
 static int startingValue = 0;
 int getRandomIntFromRange(int l, int u) {
-    
     startingValue = startingValue % (u - l + 1);
     
     int returnVal = startingValue + l;
@@ -27,41 +26,41 @@ void TEST_can_get_next_piece() {
     
     startingValue = 0;
     
-    GeneratorHandle handle = pieces();
-    
+    GeneratorHandle* handle = pieces();
+
     NextPieceData pieceData;
     
-    gen_next(handle, NULL, &pieceData);
-    
+    gen_next(handle, &pieceData);
     assert(pieceData.currentPiece->id == PIECE_T);
+    
     assert(pieceData.nextPiece->id == PIECE_O);
     
-    gen_next(handle, NULL, &pieceData);
+    gen_next(handle, &pieceData);
     
     assert(pieceData.currentPiece->id == PIECE_O);
     assert(pieceData.nextPiece->id == PIECE_S);
     
-    gen_next(handle, NULL, &pieceData);
+    gen_next(handle, &pieceData);
     
     assert(pieceData.currentPiece->id == PIECE_S);
     assert(pieceData.nextPiece->id == PIECE_Z);
     
-    gen_next(handle, NULL, &pieceData);
+    gen_next(handle, &pieceData);
     
     assert(pieceData.currentPiece->id == PIECE_Z);
     assert(pieceData.nextPiece->id == PIECE_J);
     
-    gen_next(handle, NULL, &pieceData);
+    gen_next(handle, &pieceData);
     
     assert(pieceData.currentPiece->id == PIECE_J);
     assert(pieceData.nextPiece->id == PIECE_L);
     
-    gen_next(handle, NULL, &pieceData);
+    gen_next(handle, &pieceData);
     
     assert(pieceData.currentPiece->id == PIECE_L);
     assert(pieceData.nextPiece->id == PIECE_I);
     
-    gen_next(handle, NULL, &pieceData);
+    gen_next(handle, &pieceData);
     
     assert(pieceData.currentPiece->id == PIECE_I);
     assert(pieceData.nextPiece->id == PIECE_T);
@@ -90,11 +89,11 @@ void PieceScanFunc_T_test(int row, int col, CellData data) {
 void TEST_can_scan_piece_netural() {
     startingValue = 0;
     
-    GeneratorHandle handle = pieces();
+    GeneratorHandle* handle = pieces();
     
     NextPieceData pieceData;
     
-    gen_next(handle, NULL, &pieceData);
+    gen_next(handle,    &pieceData);
     
     assert(pieceData.currentPiece->id == PIECE_T);
     

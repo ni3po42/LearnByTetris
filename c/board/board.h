@@ -86,13 +86,10 @@ void xorBoardCell(int row, int col, CellData data);
 
 /*
     generating function that yields data within given bounds of board
-    @param row - integer between 0 and ROWS
-    @param col - integer between 0 and COLS
-    @param height - integer of # of rows to cover
-    @param width - integer of # of cols to cover
+    @param args - pointer to args to restrict scan
     @return GeneratorHandle - to be used with gen_next to obtain next BoardScanData. caller must free handle when done
 */
-GeneratorHandle scanBoard(int row, int col, int height, int width);
+GeneratorHandle* scanBoard(BoardScanArguments* args);
 
 /*
     include new row in given collapsed row mask

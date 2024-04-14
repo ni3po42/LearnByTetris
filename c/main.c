@@ -28,16 +28,20 @@ int main(int argc, char *argv[])
 
     renderInit();
 
-    EventStreamHandle eventStream = createEventStreamHandle();
-    GeneratorHandle eventGeneratorHandle =  eventStreamAsGenerator(eventStream);
+    EventStreamHandle* eventStream = createEventStreamHandle();
+    GeneratorHandle* eventGeneratorHandle =  eventStreamAsGenerator(eventStream);
     
     startInputLoop(eventStream);
     
-    GeneratorHandle gameLoop = doGameLoop(eventGeneratorHandle, level);
+    GameLoopArguments loopArgs = {
+        .eventStream = eventGeneratorHandle,
+        .startLevel = level
+    };
+    GeneratorHandle* gameLoop = doGameLoop(&loopArgs);
     
     startDropInterval(eventStream, interval);
     
-    while(gen_next(gameLoop, NULL, &status)) {
+    while(gen_next(gameLoop, &status)) {
         
         renderScreen(status);
      

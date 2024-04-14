@@ -65,6 +65,8 @@ typedef struct RawPieceData {
 
     // unique id for piece
     int id;
+
+    color_t color;
 } RawPieceData;
 
 #endif

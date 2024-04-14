@@ -13,6 +13,13 @@ typedef int gamelevel_t;
 // defines an interval
 typedef int interval_t;
 
+// arguments for starting a game loop 
+typedef struct GameLoopArguments {
+    gamelevel_t startLevel;
+    GeneratorHandle* eventStream;
+} GameLoopArguments;
+
+
 // structure to inform of game's state
 typedef struct GameStatus {
 
@@ -42,10 +49,9 @@ interval_t getInterval(gamelevel_t level);
 
 /**
  * Starts coroutine for running a game
- * @param eventStreamHandle handle to the event stream to accquire game status
- * @param startLevel init level to start game
- * @return a genertor handle that yields a GameStatus
+ * @param args arguments for starting game loop
+ * @return a generator handle that yields a GameStatus
 */
-GeneratorHandle doGameLoop(GeneratorHandle eventStreamHandle, gamelevel_t startLevel);
+GeneratorHandle* doGameLoop(GameLoopArguments* args);
 
 #endif

@@ -17,24 +17,25 @@ void TEST_can_scan_board() {
     
     constructBoard(CONSTRUCT_WHOLE_BOARD);
     
-    GeneratorHandle boardHandle = scanBoard(0,0,BOARD_ROWS, BOARD_COLS);
+    BoardScanArguments args = {
+        .col = 0, .row = 0, .width = BOARD_COLS, .height = BOARD_ROWS
+    };
+    GeneratorHandle* boardHandle = scanBoard(&args);
     BoardScanData scanData;
     
-    while(gen_next(boardHandle, NULL, &scanData)) {
+    while(gen_next(boardHandle, &scanData)) {
         
-         if (scanData.col == 0) {
+        if (scanData.col == 0) {
             fprintf(stderr, "\n");
         }
         
         //int bCell = boardBuffer[scanData.row * BOARD_COLS + scanData.col];
         if (scanData.data == 0) {
-            fprintf(stderr, " ", scanData.data);    
+            fprintf(stderr, " ");    
         } else {
-            fprintf(stderr, "X", scanData.data);    
+            fprintf(stderr, "X");    
         }
         
-        
-       
     }
     
     freeGenerator(&boardHandle);

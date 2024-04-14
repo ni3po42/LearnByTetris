@@ -3,11 +3,11 @@
 // linked list defining the event queue of messages
 struct EventNode {
 
-    // payload
-    EventMessage message;
-
     // tracks howmany references outside the event queue exist
     int refCount;
+
+    // payload
+    event_type type;
 
     // next node in the list
     struct EventNode* next;

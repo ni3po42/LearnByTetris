@@ -136,6 +136,6 @@ void pieceScan(const Piece* piece, bool posNeutral, PieceScanFunc func);
  * handles generating a randome infinite sequence of pieces. 
  * @return a GeneratorHandle. When invoked with gen_next, a NextPieceData struct is expected to be yielded
 */
-GeneratorHandle pieces();
+GeneratorHandle* pieces();
 
 #endif

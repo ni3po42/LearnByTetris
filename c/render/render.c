@@ -81,10 +81,13 @@ static void renderNextPiece(NextPieceData nextPieceData) {
 
 static void gameBoard() {
    
-    GeneratorHandle boardHandle = scanBoard(0,0,BOARD_ROWS, BOARD_COLS);
+    BoardScanArguments scanArgs = {
+        .col = 0, .row = 0, .height = BOARD_ROWS, .width = BOARD_COLS
+    };
+    GeneratorHandle* boardHandle = scanBoard(&scanArgs);
     BoardScanData scanData;
     
-    while(gen_next(boardHandle, NULL, &scanData)) {
+    while(gen_next(boardHandle, &scanData)) {
     
          int bCell = boardBuffer[scanData.row * BOARD_COLS + scanData.col];
          if (scanData.data != bCell){

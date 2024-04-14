@@ -13,123 +13,118 @@
  * Condition variables and mutex handle blocking and signaling
 */
 
-// pthread start func for generator
-static void* generator_wrap(void* input) {
+GeneratorHandle* CreateGenerator(GeneratorFunction* func, size_t yieldDataSize, void* argument) {
     
-    GeneratorContext* context = (GeneratorContext*)input;
-    GeneratorFunction* func = context->generatorFunc;
-   
-    func((GeneratorHandle)context, context->argument);
-    
-    pthread_mutex_lock(&(context->lock));
-    
-    context->isDone = true;
-    pthread_cond_signal(&(context->yieldCond));
-    
-    pthread_mutex_unlock(&(context->lock));
-    
-}
-
-GeneratorHandle createGenerator(GeneratorFunction* func, size_t bufferInSize, size_t bufferOutSize, void* argument) {
-    
-    GeneratorContext* context = (GeneratorContext*)malloc(sizeof(GeneratorContext));
+    GeneratorHandle* context = (GeneratorHandle*)malloc(sizeof(GeneratorContext));
     
     context->generatorFunc = func;
-    context->isDone = false;
-    context->argument = argument;
-    context->bufferIn = malloc(bufferInSize);
-    context->bufferInSize = bufferInSize;
-    context->bufferOut = malloc(bufferOutSize);
-    context->bufferOutSize = bufferOutSize;
-    
-    pthread_attr_t attr;
-    pthread_attr_init(&attr);
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
-    
-    if (pthread_mutex_init(&(context->lock), NULL) != 0) { 
-        fprintf(stderr, "\n mutex init has failed\n");
-        free(context);
-        return (GeneratorHandle)NULL;
-    } 
-    
-    if (pthread_cond_init(&(context->nextCond), NULL) != 0) {                                    
-        fprintf(stderr, "\n cond init has failed\n");
-        free(context);
-        return (GeneratorHandle)NULL;                                                                  
-    }
-    
-     if (pthread_cond_init(&(context->yieldCond), NULL) != 0) {                                    
-        fprintf(stderr, "\n cond init has failed\n");
-        free(context);
-        return (GeneratorHandle)NULL;                                                                  
-    } 
- 
-    pthread_create(&(context->thread_id), &attr, generator_wrap, context);
-    
-    return (GeneratorHandle)context;
+    context->isDone = false; 
+    context->argument = argument;    
+    context->yieldDataSize = yieldDataSize;
+
+    context->returnAddress = NULL;
+    context->stackFrame = NULL;
+    context->framePtr = NULL;
+    context->restoreMode = false;
+
+    return context;
 }
 
-bool GeneratorNext(GeneratorHandle context, void* send, void* received) {
+static void DumpFrame(GeneratorHandle* context, const char* str) {
 
-    pthread_mutex_lock(&(context->lock));
-    
-    if (context->isDone) {
+    fprintf(stderr, "%s (root)", str);
+    FrameNode* temp2 = context->stackFrame;
+    while(temp2 != NULL) {
+        fprintf(stderr, " -> %p [%p:%ld] (%p)", temp2, temp2->data, temp2->size, temp2->next);
+        temp2 = temp2->next;
+    }
+    fprintf(stderr, "\n");
+}
+
+void* GeneratorNextFramePtr(GeneratorHandle* context, size_t size) {
+
+    if (context->restoreMode) {
         
-        if (received != NULL && context->bufferOut != NULL) {
-            memcpy(received, context->bufferOut, context->bufferOutSize);    
-        } 
-        
+        if (context->framePtr == NULL && context->stackFrame == NULL) {   
+            return NULL;            
+        } else {
+
+            if (context->framePtr == NULL) {
+                context->framePtr = context->stackFrame;
+            }
+
+            void* temp = context->framePtr->data;
+            context->framePtr = context->framePtr->next;
+            return temp;
+        }
     } else {
-        
-        if (context->bufferIn != NULL && send != NULL) {
-            memcpy(context->bufferIn, send, context->bufferInSize);    
+        FrameNode* newPtr = (FrameNode*)malloc(sizeof(FrameNode));
+
+        if (context->framePtr == NULL && context->stackFrame == NULL) {
+            context->stackFrame = newPtr;
+        } else if(context->framePtr != NULL) {
+            context->framePtr->next = newPtr;  
+        } else {            
+            context->stackFrame->next = newPtr;
         }
-        
-        pthread_cond_signal(&(context->nextCond));        
-        pthread_cond_wait(&(context->yieldCond), &(context->lock));  
-     
-        if (received != NULL && context->bufferOut != NULL) {
-            memcpy(received, context->bufferOut, context->bufferOutSize);
-        }
-      
+
+        context->framePtr = newPtr;
+
+        newPtr->data = malloc(size);
+        newPtr->size = size;
+        newPtr->next = NULL;
+
+        return newPtr->data;
     }
     
-    bool isDone = context->isDone;
-    pthread_mutex_unlock(&(context->lock));
-    
-    return !isDone;
 }
 
-bool GeneratorYield(GeneratorHandle context, void* sent, void* recieved, bool isDone) {
+void* GeneratorTryGoto(GeneratorHandle* handle, void* elseAddress, void** argument) {
+    
+    *argument = handle->argument;
+    handle->restoreMode = true;
+    handle->framePtr = handle->stackFrame;
+   
+    if (handle->returnAddress != NULL) {
+        return handle->returnAddress;
+    } else {
+        return elseAddress;
+    }
+}
 
-    pthread_mutex_lock(&(context->lock));
+bool GeneratorNext(GeneratorHandle* context, void* received) {
 
     if (context->isDone) {
-        pthread_cond_signal(&(context->yieldCond));
-        pthread_mutex_unlock(&(context->lock));
         return false;
     }
-  
-    if (context->bufferOut != NULL && sent != NULL) {
-        memcpy(context->bufferOut, sent, context->bufferOutSize);    
-    }
-  
-    context->isDone = isDone;
     
-    pthread_cond_signal(&(context->yieldCond));    
-    pthread_cond_wait(&(context->nextCond), &(context->lock)); 
-   
-    if (recieved != NULL && context->bufferIn != NULL) {
-        memcpy(recieved, context->bufferIn, context->bufferInSize);    
-    }
-
-    isDone = context->isDone;
-    pthread_mutex_unlock(&(context->lock));
-
-    return !isDone;
+    context->yieldPtr = received;
+    context->generatorFunc(context);
+    context->yieldPtr = NULL;
+        
+    return !context->isDone;
 }
 
-void freeGenerator(GeneratorHandle* handlePtr) {
+bool GeneratorYield_First(GeneratorHandle* context, void* sent, void* returnAddress) {
+
+    context->isDone = false;
+
+    context->returnAddress = returnAddress;
+
+    // place yielded value into buffer
+    if (context->yieldPtr != NULL && sent != NULL) {
+        memcpy(context->yieldPtr, sent, context->yieldDataSize);    
+    }
+
+    return returnAddress != NULL;
+}
+
+void GeneratorYield_Second(GeneratorHandle* context) {   
+    context->returnAddress = NULL;
+    context->isDone = true;
+}
+
+void freeGenerator(GeneratorHandle** handlePtr) {
 
     GeneratorContext* context = *handlePtr;
 
@@ -137,25 +132,23 @@ void freeGenerator(GeneratorHandle* handlePtr) {
         return;
     }
     
-    pthread_mutex_lock(&context->lock);
     context->isDone = true;
-    pthread_mutex_unlock(&context->lock);
-    pthread_cond_signal(&context->nextCond);
-
-    pthread_join(context->thread_id, NULL);
-    
-    if (pthread_cond_destroy(&context->nextCond) != 0) {                                       
-        perror("pthread_cond_destroy() error: nextCond");                                     
-        exit(2);                                                                    
-    } 
-    
-    if (pthread_cond_destroy(&context->yieldCond) != 0) {                                       
-        perror("pthread_cond_destroy() error: nextCond");                                     
-        exit(2);                                                                    
+   
+    if (context->stackFrame != NULL) {
+        free(context->stackFrame);
+        context->stackFrame = NULL;
     }
-    
-    free(context->bufferIn);
-    free(context->bufferOut);
+
+    while (context->stackFrame != NULL) {
+        FrameNode* temp = context->stackFrame->next;        
+        free(context->stackFrame->data);
+        context->stackFrame->data = NULL;
+        free(context->stackFrame);
+        context->stackFrame = temp;
+    }
+
+    context->framePtr = NULL;
+
     free(context);
-    *handlePtr = (GeneratorHandle)NULL;
+    *handlePtr = (GeneratorHandle*)NULL;
 }

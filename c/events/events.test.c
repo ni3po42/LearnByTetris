@@ -3,7 +3,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <string.h>
-
+#include <pthread.h>
 #include <assert.h>
 
 #include "events.h"
@@ -13,16 +13,16 @@
 
 void TEST_can_create_stream_handle() {
  
-    EventStreamHandle handle = createEventStreamHandle();
+    EventStreamHandle* handle = createEventStreamHandle();
     
-    assert(handle != (EventStreamHandle)NULL);
+    assert(handle != (EventStreamHandle*)NULL);
     
     freeEventStream(&handle);
     
 }
 
 void TEST_emit_enqueues_message() {
-    EventStreamHandle handle = createEventStreamHandle();
+    EventStreamHandle* handle = createEventStreamHandle();
     
     EventQueue* Q = (EventQueue*)handle;
     
@@ -41,7 +41,7 @@ void TEST_emit_enqueues_message() {
     assert(Q->back != NULL);
     assert(Q->front == Q->back);
     
-    assert(Q->front->message.type == message1.type);
+    assert(Q->front->type == message1.type);
     
     emit(handle, message2);
     
@@ -49,15 +49,15 @@ void TEST_emit_enqueues_message() {
     assert(Q->back != NULL);
     assert(Q->front->next == Q->back);
    
-    assert(Q->front->next->message.type == message2.type);
+    assert(Q->front->next->type == message2.type);
     
     freeEventStream(&handle);
 }
 
 void TEST_handles_when_nexting_stopped_stream() {
-    EventStreamHandle handle = createEventStreamHandle();
+    EventStreamHandle* handle = createEventStreamHandle();
     
-    GeneratorHandle genHandle = eventStreamAsGenerator(handle);
+    GeneratorHandle* genHandle = eventStreamAsGenerator(handle);
     
     EventMessage message1 = { .type = 3 };
     EventMessage messageRecieved;
@@ -66,71 +66,77 @@ void TEST_handles_when_nexting_stopped_stream() {
     //kill stream while gen handle is alive
     freeEventStream(&handle);
 
-    gen_next(genHandle, NULL, &messageRecieved);
+    gen_next(genHandle, &messageRecieved);
     freeGenerator(&genHandle);
     
 }
 
 
+void* can_yield_event_thread_func(void* input) {
+
+    EventMessage messageRecieved;
+    GeneratorHandle* handle = (GeneratorHandle*)input;
+
+    gen_next(handle, &messageRecieved);
+    assert(messageRecieved.type == 3);
+    return NULL;
+}
+// single call to gen_next and gen_yield works single threaded
+// only on first call, this is not an intended
 void TEST_can_yield_event() {
-    EventStreamHandle handle = createEventStreamHandle();
+    EventStreamHandle* handle = createEventStreamHandle();
     
-    GeneratorHandle genHandle = eventStreamAsGenerator(handle);
+    GeneratorHandle* genHandle = eventStreamAsGenerator(handle);
     
     EventMessage messageSent = { .type = 3 };
-    EventMessage messageRecieved;
-      
-    sleep(1);  
-    emit(handle, messageSent);
     
-    gen_next(genHandle, NULL, &messageRecieved);
-    
-    assert(messageRecieved.type == messageSent.type);
+    pthread_t thread;
+  
+    pthread_create(&thread, NULL, can_yield_event_thread_func,(void*)genHandle);
 
+    emit(handle, messageSent);
+
+    pthread_join(thread, NULL);
+ 
     freeGenerator(&genHandle);
-    freeEventStream(&handle);
     
+    freeEventStream(&handle);   
+}
+
+void* can_yield_multi_event_thread_func(void* input) {
+
+    EventMessage messageRecieved;
+    GeneratorHandle* handle = (GeneratorHandle*)input;
+    int i;
+    for (i=0;i<5;i++) {
+        gen_next(handle, &messageRecieved);
+        assert(messageRecieved.type == i);
+    }
+    return NULL;
 }
 
 void TEST_can_yield_event_multiple() {
-    EventStreamHandle handle = createEventStreamHandle();
+    EventStreamHandle* handle = createEventStreamHandle();
     
-    GeneratorHandle genHandle = eventStreamAsGenerator(handle);
+    GeneratorHandle* genHandle = eventStreamAsGenerator(handle);
     
-    EventMessage messageSent = { .type = 0 };
-    EventMessage messageRecieved;
-    sleep(1);
+    pthread_t thread;
+
+    pthread_create(&thread, NULL, can_yield_multi_event_thread_func,(void*)genHandle);
     int i;
     for(i=0;i<5;i++) {
-        messageSent.type = i;
+        EventMessage messageSent = { .type = i };
         emit(handle, messageSent);
-        gen_next(genHandle, NULL, &messageRecieved);
-        assert(messageRecieved.type == messageSent.type);
-        assert(messageRecieved.type == i);
+        sleep(1);
+        fprintf(stderr, "type: %d\n", i);
     }
     
-    freeGenerator(&genHandle);    
-    freeEventStream(&handle);
+    pthread_join(thread, NULL);
+
+    freeGenerator(&genHandle);
+    freeEventStream(&handle);  
 }
 
-void TEST_can_yield_event_with_sleep() {
-    EventStreamHandle handle = createEventStreamHandle();
-    
-    GeneratorHandle genHandle = eventStreamAsGenerator(handle);
-    
-    sleep(1);
-    EventMessage messageSent = { .type = 4 };
-    EventMessage messageRecieved;
-    
-    emit(handle, messageSent);
-    
-    gen_next(genHandle, NULL, &messageRecieved);
-    
-    assert(messageRecieved.type == messageSent.type);
-    
-    freeGenerator(&genHandle);
-    freeEventStream(&handle);
-}
 
 int main(int argc, char *argv[]) 
 {
@@ -141,8 +147,6 @@ int main(int argc, char *argv[])
     run(TEST_can_yield_event);
     
     run(TEST_can_yield_event_multiple);
-    
-    run(TEST_can_yield_event_with_sleep);
 
     run(TEST_handles_when_nexting_stopped_stream);
     

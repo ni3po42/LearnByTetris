@@ -11,11 +11,11 @@
 
 typedef struct DropIntervalInput {
     interval_t interval;
-    EventStreamHandle eventStreamHandle;
+    EventStreamHandle* eventStreamHandle;
 } DropIntervalInput;
 
 typedef struct InputLoopArgument {
-    EventStreamHandle eventStreamHandle;
+    EventStreamHandle* eventStreamHandle;
 } InputLoopArgument;
 
 void initInput() {
@@ -32,7 +32,7 @@ void freeInput() {
 static void* startInputLoop_func(void* input) {
  
     InputLoopArgument* argument = (InputLoopArgument*)input;
-    EventStreamHandle handle = argument->eventStreamHandle;
+    EventStreamHandle* handle = argument->eventStreamHandle;
     free(argument);
     
     int c;
@@ -74,12 +74,7 @@ static void* startInputLoop_func(void* input) {
     return NULL;
 }
 
-void startInputLoop(EventStreamHandle eventStreamHandle) {
-    
-//     raw();	
-//  	keypad(stdscr, TRUE);
-//     noecho();
-
+void startInputLoop(EventStreamHandle* eventStreamHandle) {
     pthread_t thread_id;
     
     pthread_attr_t attr;
@@ -94,7 +89,7 @@ void startInputLoop(EventStreamHandle eventStreamHandle) {
 static void* resetDropInterval_func(void* input) {
     
     DropIntervalInput* argument = (DropIntervalInput*)input;
-    EventStreamHandle handle = argument->eventStreamHandle;
+    EventStreamHandle* handle = argument->eventStreamHandle;
     interval_t interval = argument->interval;
     
     free(argument);
@@ -115,7 +110,7 @@ static void* resetDropInterval_func(void* input) {
     
 }
 
-void startDropInterval(EventStreamHandle eventStreamHandle, interval_t interval) {
+void startDropInterval(EventStreamHandle* eventStreamHandle, interval_t interval) {
     pthread_t thread_id;
     
     pthread_attr_t attr;

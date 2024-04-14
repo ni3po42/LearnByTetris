@@ -6,29 +6,32 @@
 #include <stdbool.h>
 
 // opaque pointer for generator handle
-typedef struct GeneratorContext* GeneratorHandle;
+typedef struct GeneratorContext GeneratorHandle;
 
 // function type a generator function
-typedef void GeneratorFunction(GeneratorHandle handle, void* argument);
+typedef void GeneratorFunction(GeneratorHandle* handle);
+
 
 /** 
  * Creates a generator function with isolated scope. Only use directly if macros are not sufficient
  * @param func function representing an isolated scope to handle yielding data to a caller
- * @param bufferInSize size of data going into gen function
- * @param bufferOutSize size of data coming out of gen function
+ * @param yieldDataSize size of data going into gen function
  * @param argument arbitrary data to pass to init call of gen function
  * @return GeneratorHandle: an opaque pointer to the generator function
 */
-GeneratorHandle createGenerator(GeneratorFunction* func, size_t bufferInSize, size_t bufferOutSize, void* argument);
+GeneratorHandle* CreateGenerator(GeneratorFunction* func, size_t yieldDataSize, void* argument);
+
+//void GeneratorTrySetReturn(GeneratorHandle* handle, void* returnAddress, bool isDone);
+void* GeneratorTryGoto(GeneratorHandle* handle, void* elseAddress, void** argument);
+void* GeneratorNextFramePtr(GeneratorHandle* context, size_t size);
 
 /** 
  * Gets the next value from a generator function
- * @param handle opaque pointer for a generator function
- * @param sent data to send to generator function. Can be set to NULL if no data sent
+ * @param handle opaque pointer for a generator function 
  * @param received data yielded to caller. Can be set to NULL if no data to be received
  * @return boolean: true gen function has not been closed, false if aborted
 */
-bool GeneratorNext(GeneratorHandle handle, void* sent, void* received);
+bool GeneratorNext(GeneratorHandle* handle, void* received);
 
 /** 
  * Yields a value from a generator function
@@ -38,49 +41,65 @@ bool GeneratorNext(GeneratorHandle handle, void* sent, void* received);
  * @param isDone signals the generator function if generator should be closed after yielding
  * @return boolean: true gen function has not been closed, false if aborted
 */
-bool GeneratorYield(GeneratorHandle handle, void* sent, void* received, bool isDone);
+//bool GeneratorYield(GeneratorHandle handle, void* sent, void* received, bool isDone);
+bool GeneratorYield_First(GeneratorHandle* context, void* sent, void* returnAddress);
+void GeneratorYield_Second(GeneratorHandle* context);
+  
 
 /** 
  * Frees generator from heap
  * @param handle address of open GeneratorHandle. Will free and set handle to NULL
 */
-void freeGenerator(GeneratorHandle* handle);
+void freeGenerator(GeneratorHandle** handle);
 
 /** 
  * Macro for creating a generator function
  * @param func function representing an isolated scope to handle yielding data to a caller
  * @param TSEND the type of the data being sent into the generator function
- * @param TRECEIVE the type of data being yielded from generator function
  * @param input arbitrary data sent initially into the generator function
  * @return GeneratorHandle: an opaque pointer to the generator function
 */
-#define gen_func(func, TSEND, TRECEIVE, input) createGenerator(func, sizeof(TSEND), sizeof(TRECEIVE), (void*)input)
+#define gen_func(func, TSEND, input) CreateGenerator(func, sizeof(TSEND), (void*)input)
+
+
 
 /** 
  * Macro for getting the next value from a generator function
  * @param handle opaque pointer for a generator function
- * @param sent data to send to generator function. Can be set to NULL if no data sent
  * @param received data yielded to caller. Can be set to NULL if no data to be received
  * @return boolean: true gen function has not been closed, false if aborted
 */
-#define gen_next(handle, sent, received) GeneratorNext(handle, (void*)sent, (void*)received)
+#define gen_next(handle, received) GeneratorNext(handle, (void*)received)
+
+// support macro for concatenating tokens
+#define __generator_build_label(x) GENLABEL ## x
+
+// support macro for generator yield
+#define __generator_build_yield(counter, context, sent) do{\
+    if(GeneratorYield_First(context, (void*)sent, &&__generator_build_label(counter))){\
+    return;\
+    }\
+    __generator_build_label(counter): GeneratorYield_Second(context);\
+    }while(0)
 
 /** 
  * Macro for yielding a value from a generator function
  * @param handle opaque pointer for a generator function
  * @param sent data to yielded from generator function. Can be set to NULL if no data yielded
- * @param received data received from caller. Can be set to NULL if no data to be received
  * @return boolean: true gen function has not been closed, false if aborted
 */
-#define gen_yield(handle, sent, received) GeneratorYield(handle, (void*)sent, (void*)received, false)
+#define gen_yield(context, sent) __generator_build_yield(__COUNTER__, context, sent)
 
-/** 
- * Macro for yielding a final value from a generator function
- * @param handle opaque pointer for a generator function
- * @param sent data to yielded from generator function. Can be set to NULL if no data yielded
- * @param received data received from caller. Can be set to NULL if no data to be received
- * @return boolean: true gen function has not been closed, false if aborted
-*/
-#define gen_return(handle, sent, received) GeneratorYield(handle, (void*)sent, (void*)received, true)
+#define gen_restore(context, Tfield, name) Tfield* name = (Tfield*)GeneratorNextFramePtr(context, sizeof(Tfield))
+
+// support macro for building jmp
+#define __generator_frame_initialization(counter, context, Tfield, name) Tfield* name;\
+do{\
+goto *(GeneratorTryGoto(context, &&__generator_build_label(counter), (void**)&name));\
+__generator_build_label(counter):\
+}while(0)
+
+#define gen_frame_init(context, Tfield, name) __generator_frame_initialization(__COUNTER__, context, Tfield, name)
+
 
 #endif

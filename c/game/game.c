@@ -13,12 +13,6 @@
  * private apis
 */
 
-// arguments for starting a game loop 
-typedef struct GameLoopArguments {
-    gamelevel_t startLevel;
-    GeneratorHandle eventStream;
-} GameLoopArguments;
-
 // map for number of rows (index) to a score (value at index)
 static int scoring[5] = {
      0,
@@ -46,10 +40,13 @@ static void xorGameBoard(Piece* piece) {
 // determines of a given piece causes a collision on board in it's current state
 static bool gameHasCollision(Piece* piece) {
     
-    GeneratorHandle handle = scanBoard(getPieceRow(piece), getPieceCol(piece), getPieceHeight(piece), getPieceWidth(piece));
+    BoardScanArguments args = {
+        .col = getPieceCol(piece), .row = getPieceRow(piece), .height = getPieceHeight(piece), .width = getPieceWidth(piece)
+    };
+    GeneratorHandle* handle = scanBoard(&args);
     BoardScanData scanData;
     
-    while(gen_next(handle, NULL, &scanData)) {
+    while(gen_next(handle, &scanData)) {
         if (scanData.collision) {
             freeGenerator(&handle);
             return true;
@@ -66,7 +63,10 @@ static collapsed_rows_t getClearRows(Piece* piece) {
     //pieces at most can span 4 rows;
     int rowCounts[4] = {0,0,0,0};
     int row = getPieceRow(piece);
-    GeneratorHandle handle = scanBoard(row, 0, getPieceHeight(piece), BOARD_COLS);
+    BoardScanArguments args = {
+        .row = row, .col = 0, .height = getPieceHeight(piece), .width = BOARD_COLS
+    };
+    GeneratorHandle* handle = scanBoard(&args);
     BoardScanData scanData;
     
     collapsed_rows_t clearedRows = 0;
@@ -74,7 +74,7 @@ static collapsed_rows_t getClearRows(Piece* piece) {
     int index;
     int val;
     
-    while(gen_next(handle, NULL, &scanData)) {
+    while(gen_next(handle, &scanData)) {
         index = scanData.row - row;
         val = (scanData.data & WALL_MASK) ? 0 : (scanData.data & (ACTIVE_MASK | STATIC_MASK));
         rowCounts[index] += (val > 0) ? 1 : 0;
@@ -106,129 +106,121 @@ static int countClearRows(collapsed_rows_t clearedRows) {
 }
 
 // define the actual function loop for generator
-static void doGameLoop_genFunc(GeneratorHandle gameLoop, void* argument) {
+static void doGameLoop_genFunc(GeneratorHandle* gameLoop) {
     
-    GameLoopArguments* loopArgs = (GameLoopArguments*)argument;
+    gen_restore(gameLoop, gamelevel_t, startLevel);
+    gen_restore(gameLoop, int, linesCleared);
+    gen_restore(gameLoop, int, linesToClear);
+    gen_restore(gameLoop, bool, wasDropped);
+    gen_restore(gameLoop, int, clearRowCount);
+    gen_restore(gameLoop, GeneratorHandle*, piecesHandle);
+    gen_restore(gameLoop, Piece*, currentPiece);
+    gen_frame_init(gameLoop, GameLoopArguments, loopArgs);
     
-    GameStatus status;
-    EventMessage eventData;
-    
-    status.score = 0;
-    status.gameover = false;
-    gamelevel_t startLevel = loopArgs->startLevel;
-    status.level = loopArgs->startLevel;
-    status.clearRows = 0;
-    GeneratorHandle stream = loopArgs->eventStream;
-    
-    Piece* currentPiece = NULL;
-    
-    free(argument);
-    
-    int linesCleared = 0;
-    bool wasDropped = false;
-    int clearRowCount = 0;
-    bool isDone = false;
+    *startLevel = loopArgs->startLevel;
+    *linesCleared = 0;
+    *linesToClear = 0;
+    *wasDropped = false;
+    *clearRowCount = 0;
 
-    GeneratorHandle piecesHandle = pieces();
+    GameStatus status = {
+        .score = 0,
+        .gameover = false,
+        .level = loopArgs->startLevel,
+        .clearRows = 0
+    };
+    
+    *piecesHandle = pieces();
+    *currentPiece = NULL;
     
     // get next pieces
-    while(gen_next(piecesHandle, NULL, &status.nextPieceData)){
+    while(gen_next(*piecesHandle, &status.nextPieceData)){
         
-        int linesToClear = minInt(status.level * 10 + 10, maxInt(100, status.level * 10 - 50));
+        *linesToClear = minInt(status.level * 10 + 10, maxInt(100, status.level * 10 - 50));
     
-        currentPiece = status.nextPieceData.currentPiece;
+        *currentPiece = status.nextPieceData.currentPiece;
         
         //draw
-        xorGameBoard(currentPiece);
+        xorGameBoard(*currentPiece);
         
-        status.gameover = gameHasCollision(currentPiece);
+        status.gameover = gameHasCollision(*currentPiece);
 
-        // yield game status. if abort, clean up
-        if(!gen_yield(gameLoop, &status, NULL)) {
-            freeGenerator(&piecesHandle);
-            return;
-        }
+        // yield game status.
+        gen_yield(gameLoop, &status);
    
         // get next event
-        while(gen_next(stream, NULL, &eventData)) {
+        EventMessage eventData;
+        while(gen_next(loopArgs->eventStream, &eventData)) {
             
             //clear
-            xorGameBoard(currentPiece);
+            xorGameBoard(*currentPiece);
             
-            wasDropped = false;
+            *wasDropped = false;
             switch(eventData.type) {
                 case DROP: 
-                    dropPiece(currentPiece); 
-                    wasDropped = true; 
+                    dropPiece(*currentPiece); 
+                    *wasDropped = true; 
                     break;
                 case TURN_LEFT: 
-                    rotatePieceLeft(currentPiece); 
+                    rotatePieceLeft(*currentPiece); 
                     break;
                 case TURN_RIGHT: 
-                    rotatePieceRight(currentPiece); 
+                    rotatePieceRight(*currentPiece); 
                     break;
                 case LEFT: 
-                    leftPiece(currentPiece); 
+                    leftPiece(*currentPiece); 
                     break;
                 case RIGHT: 
-                    rightPiece(currentPiece); 
+                    rightPiece(*currentPiece); 
                     break;
-                case EXIT_GAME:                      
-                    if(!gen_return(gameLoop, &status, NULL)) {
-                        freeGenerator(&piecesHandle);
-                        return;
-                    }                    
-                    break;
+                case EXIT_GAME:   
+                    gen_yield(gameLoop, &status);
+                    freeGenerator(piecesHandle);
+                    return;
             }
 
             //draw new
-            xorGameBoard(currentPiece);
+            xorGameBoard(*currentPiece);
 
-            if (gameHasCollision(currentPiece)) {
+            if (gameHasCollision(*currentPiece)) {
                 
                 //clear
-                xorGameBoard(currentPiece);                
-                revertPiece(currentPiece);
+                xorGameBoard(*currentPiece);                
+                revertPiece(*currentPiece);
                 
-                if (wasDropped) {
-                    commitPiece(currentPiece);
+                if (*wasDropped) {
+                    commitPiece(*currentPiece);
                 }
                 
                 //draw
-                xorGameBoard(currentPiece);
+                xorGameBoard(*currentPiece);
 
-                if (wasDropped) {
+                if (*wasDropped) {
                     break;
                 }
             }
             
-            if(!gen_yield(gameLoop, &status, NULL)) {
-                return;
-            }
+            gen_yield(gameLoop, &status);
         }
         
-        status.clearRows = getClearRows(currentPiece);
-        clearRowCount = countClearRows(status.clearRows);
-        status.score += scoring[clearRowCount] * (status.level + 1);
-        linesCleared += clearRowCount;
+        status.clearRows = getClearRows(*currentPiece);
+        *clearRowCount = countClearRows(status.clearRows);
+        status.score += scoring[*clearRowCount] * (status.level + 1);
+        *linesCleared += *clearRowCount;
 
-        int bound = linesToClear + ((status.level - startLevel) * 10);
+        int bound = *linesToClear + ((status.level - *startLevel) * 10);
         
-        if (linesCleared >= bound) {
+        if (*linesCleared >= bound) {
             status.level++;
-            linesCleared -= bound;
+            *linesCleared -= bound;
         }
         
-        if (!gen_yield(gameLoop, &status, NULL)) {
-            freeGenerator(&piecesHandle);
-            return;            
-        }
+        gen_yield(gameLoop, &status);
         
         collapseBoard(status.clearRows);
     }
     
-    freeGenerator(&piecesHandle);
-    
+    freeGenerator(piecesHandle);    
 }
 
 /**
@@ -256,12 +248,6 @@ interval_t getInterval(gamelevel_t level) {
     return (1000 * frames) / 6;
 }
 
-GeneratorHandle doGameLoop(GeneratorHandle eventStreamHandle, gamelevel_t startLevel) {
-    
-    GameLoopArguments* argument = (GameLoopArguments*)malloc(sizeof(GameLoopArguments));
-    
-    argument->startLevel = startLevel;
-    argument->eventStream = eventStreamHandle;
-    
-    return gen_func(doGameLoop_genFunc, void, GameStatus, argument);
+GeneratorHandle* doGameLoop(GameLoopArguments* args) {
+    return gen_func(doGameLoop_genFunc, GameStatus, &args);
 }
