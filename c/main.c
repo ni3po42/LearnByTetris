@@ -32,11 +32,11 @@ int main(int argc, char *argv[])
     GeneratorHandle* eventGeneratorHandle =  eventStreamAsGenerator(eventStream);
     
     startInputLoop(eventStream);
-    
     GameLoopArguments loopArgs = {
         .eventStream = eventGeneratorHandle,
         .startLevel = level
     };
+    
     GeneratorHandle* gameLoop = doGameLoop(&loopArgs);
     
     startDropInterval(eventStream, interval);
@@ -44,6 +44,7 @@ int main(int argc, char *argv[])
     while(gen_next(gameLoop, &status)) {
         
         renderScreen(status);
+        //fprintf(stderr, "l:%d, s:%d", status.level, status.score);
      
         if (status.gameover) {
             sleep(3);

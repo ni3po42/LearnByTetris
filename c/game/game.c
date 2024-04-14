@@ -115,6 +115,7 @@ static void doGameLoop_genFunc(GeneratorHandle* gameLoop) {
     gen_restore(gameLoop, int, clearRowCount);
     gen_restore(gameLoop, GeneratorHandle*, piecesHandle);
     gen_restore(gameLoop, Piece*, currentPiece);
+    gen_restore(gameLoop, GameStatus, status);
     gen_frame_init(gameLoop, GameLoopArguments, loopArgs);
     
     *startLevel = loopArgs->startLevel;
@@ -123,30 +124,28 @@ static void doGameLoop_genFunc(GeneratorHandle* gameLoop) {
     *wasDropped = false;
     *clearRowCount = 0;
 
-    GameStatus status = {
-        .score = 0,
-        .gameover = false,
-        .level = loopArgs->startLevel,
-        .clearRows = 0
-    };
+    status->score = 0;
+    status->gameover = false;
+    status->level = loopArgs->startLevel;
+    status->clearRows = 0;
     
     *piecesHandle = pieces();
     *currentPiece = NULL;
     
     // get next pieces
-    while(gen_next(*piecesHandle, &status.nextPieceData)){
+    while(gen_next(*piecesHandle, &status->nextPieceData)){
         
-        *linesToClear = minInt(status.level * 10 + 10, maxInt(100, status.level * 10 - 50));
+        *linesToClear = minInt(status->level * 10 + 10, maxInt(100, status->level * 10 - 50));
     
-        *currentPiece = status.nextPieceData.currentPiece;
+        *currentPiece = status->nextPieceData.currentPiece;
         
         //draw
         xorGameBoard(*currentPiece);
         
-        status.gameover = gameHasCollision(*currentPiece);
+        status->gameover = gameHasCollision(*currentPiece);
 
         // yield game status.
-        gen_yield(gameLoop, &status);
+        gen_yield(gameLoop, status);
    
         // get next event
         EventMessage eventData;
@@ -174,7 +173,7 @@ static void doGameLoop_genFunc(GeneratorHandle* gameLoop) {
                     rightPiece(*currentPiece); 
                     break;
                 case EXIT_GAME:   
-                    gen_yield(gameLoop, &status);
+                    gen_yield(gameLoop, status);
                     freeGenerator(piecesHandle);
                     return;
             }
@@ -200,24 +199,24 @@ static void doGameLoop_genFunc(GeneratorHandle* gameLoop) {
                 }
             }
             
-            gen_yield(gameLoop, &status);
+            gen_yield(gameLoop, status);
         }
         
-        status.clearRows = getClearRows(*currentPiece);
-        *clearRowCount = countClearRows(status.clearRows);
-        status.score += scoring[*clearRowCount] * (status.level + 1);
+        status->clearRows = getClearRows(*currentPiece);
+        *clearRowCount = countClearRows(status->clearRows);
+        status->score += scoring[*clearRowCount] * (status->level + 1);
         *linesCleared += *clearRowCount;
 
-        int bound = *linesToClear + ((status.level - *startLevel) * 10);
+        int bound = *linesToClear + ((status->level - *startLevel) * 10);
         
         if (*linesCleared >= bound) {
-            status.level++;
+            (status->level)++;
             *linesCleared -= bound;
         }
         
-        gen_yield(gameLoop, &status);
+        gen_yield(gameLoop, status);
         
-        collapseBoard(status.clearRows);
+        collapseBoard(status->clearRows);
     }
     
     freeGenerator(piecesHandle);    
@@ -249,5 +248,5 @@ interval_t getInterval(gamelevel_t level) {
 }
 
 GeneratorHandle* doGameLoop(GameLoopArguments* args) {
-    return gen_func(doGameLoop_genFunc, GameStatus, &args);
+    return gen_func(doGameLoop_genFunc, GameStatus, args);
 }
