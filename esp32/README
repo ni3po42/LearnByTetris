@@ -1,0 +1,7 @@
+WORK IN PROGRESS
+This project will port a version of my C based TETRIS to run on an espressif based ESP32 dual core controller.
+Since the main challenge is building on this platform, I am mostly reusing code from the previous C code, but highly simplified since the scope is different (the events is now a simple circular queue and generators are completely eliminated).
+
+This initial check in is only to get a buildable version that can run unit tests and output the game board over a serial port to demonstrate the game logic is running. I/O will be handled in future updates.
+
+This readme will be updated in the future.

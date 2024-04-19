@@ -1,0 +1,15 @@
+{
+    "files.associations": {
+        "esp_random.h": "c",
+        "arduino.h": "c",
+        "hardwareserial.h": "c",
+        "events.h": "c",
+        "game.h": "c",
+        "piece.internal.h": "c",
+        "core.h": "c",
+        "utilities.h": "c",
+        "unity_test_runner.h": "c",
+        "unity.h": "c"
+    },
+    "cmake.configureOnOpen": false
+}
