@@ -15,6 +15,8 @@ void gameGraphicsTask(void *args) {
 }
 
 void gameEventUpdater(void *args) {
+    initInput();
+
     for(;;) {
         TickType_t shortDelay = 250 / portTICK_PERIOD_MS;
         vTaskDelay(shortDelay);  
@@ -25,7 +27,6 @@ void gameEventUpdater(void *args) {
 char messageBuffer[100];
 
 void gameStatusUpdate(GameStatus* status) {
-
     if (status == NULL) {       
         //renderDebug("Hello NONE!\n"); 
         TickType_t shortDelay = 250 / portTICK_PERIOD_MS;
@@ -67,8 +68,7 @@ void gameLoopTask(void *args) {
 void setup() 
 {
     initRand();    
-    // initInput();
-    
+        
     gamelevel_t level = 10;
     interval_t interval = getInterval(level);
     

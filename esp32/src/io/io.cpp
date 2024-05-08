@@ -3,18 +3,20 @@
 #include "io.h"
 #include "board.h"
 #include "piece.h"
+#include "events.h"
+
+#include "xboxcontroller.h"
 
 /**
  * Private APIs
 */
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-
 static Board boardBuffer;
 static int nextPieceId = -1;
+static XboxController controller;
 
 static void drawText(const char* text, int row, int col) {
     // if (text == NULL) {
@@ -111,18 +113,69 @@ static void gameBoard() {
     debugMessage("\n");
 }
 
+static bool btnA = false;
+static bool btnB = false;
+static bool btnDown = false;
+static bool btnLeft = false;
+static bool btnRight = false;
 
+void handleXboxStateUpdate(const XboxState& state) {
+    
+    if (state.A && !btnA) {
+        emit(TURN_RIGHT);
+        btnA = true;
+    } else if (!state.A) {
+        btnA = false;
+    }
+
+    if (state.B && !btnB) {
+        emit(TURN_LEFT);
+        btnB = true;
+    } else if (!state.B) {
+        btnB = false;
+    }
+
+    if (state.Down && !btnDown) {
+        emit(DROP);
+        btnDown = true;
+    } else if (!state.Down) {
+        btnDown = false;
+    }
+
+    if (state.Left && !btnLeft) {
+        emit(LEFT);
+        btnLeft = true;
+    } else if (!state.Left) {
+        btnLeft = false;
+    }
+
+    if (state.Right && !btnRight) {
+        emit(RIGHT);
+        btnRight = true;
+    } else if (!state.Right) {
+        btnRight = false;
+    }
+
+}
 
 /** 
  * Public APIs
 */
 
-void initInput() {
+void initInput() {    
+    controller.listen(handleXboxStateUpdate);
+    controller.start();
 
-    // initscr();			/* Start curses mode 		*/
-	// raw();				/* Line buffering disabled	*/
+    while(!controller.isConnected()){
+        controller.reconnect();
+        delay(500);
+    }
 
+    while (controller.isWaiting()) {
+        delay(500);
+    }    
 }
+
 
 void resetDropInterval(interval_t interval) {
    
@@ -144,6 +197,24 @@ void renderClearScreen() {
 
 void renderInit() {
     Serial.begin(115200);
+    // TickType_t shortDelay = 1;
+
+    // pinMode(32, OUTPUT);
+    // bool high = false;
+    // for(;;) {
+    //     vTaskDelay(shortDelay);
+    //     if (high) {
+    //         high = false;
+    //         REG_SET_BIT(GPIO_OUT_W1TC_REG, GPIO_PIN_REG_32);
+    //         //GPIO_OUT_W1TC_REG
+    //         //digitalWrite(32, HIGH);
+    //     } else {
+    //         high = true;
+    //         REG_CLR_BIT(GPIO_OUT_W1TC_REG, GPIO_PIN_REG_32);
+    //         //digitalWrite(32, LOW);
+    //     }
+    // }
+
     // keypad(stdscr, TRUE);		/* We get F1, F2 etc..		*/
 	// noecho();			/* Don't echo() while we do getch */
 
