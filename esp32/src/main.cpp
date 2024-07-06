@@ -16,9 +16,7 @@
 #include <driver/rmt_common.h>
 #include <driver/rmt_tx.h>
 
-# define XTHAL_GET_CCOUNT()	({ int __ccount; \
-				__asm__ __volatile__("rsr.ccount %0" : "=a"(__ccount)); \
-				__ccount; })
+
 
 // __asm__(
 // ".global vidtestf\n"
@@ -104,6 +102,19 @@ volatile uint8_t* vram_buffer = vram_buffer1;
 
 extern "C" void doVram(volatile uint8_t* ram, volatile uint32_t* gpio);
 
+inline void wait_ticks(int ticks) {    
+    int __ccountE;
+    do { 
+        __asm__ __volatile__("rsr.ccount %0" : "=a"(__ccountE)); 
+    } while(__ccountE < ticks);
+} 
+
+inline void reset_ticks() {
+    int ___ccountS = 0;
+    //__asm__ __volatile__("wsr.ccount %0" : "=a"(___ccountS)); 
+    __asm__ __volatile__("wsr.ccount %0" :: "a"(___ccountS):"memory"); \
+}
+
 void setVramPixel(size_t row, size_t col, uint8_t color) {
     size_t index = row * 160 + (col >> 1);
     if (col & 0x01 == 0) {
@@ -148,77 +159,44 @@ void runOnCore2(void* args) {
     portMUX_TYPE myMutex = portMUX_INITIALIZER_UNLOCKED;
     taskENTER_CRITICAL(&myMutex);
    
-    volatile uint16_t line = 0;
+    volatile uint16_t line = 0;    
     
     for(;;) {
+        reset_ticks();
 
         //start horz signal
         REG_WRITE(GPIO_OUT_W1TC_REG, (1<<5));
-        bool cond = (line < 2);
-        uint32_t reg = cond * GPIO_OUT_W1TC_REG + (!cond) * GPIO_OUT_W1TS_REG;
-        REG_WRITE(reg, (1<<23));
-        
-        asm volatile(
-            ".rept 610 \n\t"//605
-            "nop \n\t"
-            ".endr \n\t"
-            //:::
-        );
 
-        REG_WRITE(GPIO_OUT_W1TS_REG, (1<<5));
+        if (line == 0) {
+            //start vertical signal
+            REG_WRITE(GPIO_OUT_W1TC_REG, (1<<23));    
+        } else if (line == 2) {
+            //end vertical signal
+            REG_WRITE(GPIO_OUT_W1TS_REG, (1<<23));    
+        }
+                
+        wait_ticks(610);
+        REG_WRITE(GPIO_OUT_W1TS_REG, (1<<5));       
         //end horz signal
-       
-        //start back porch
-        asm volatile(
-            ".rept 305 \n\t"//305
-            "nop \n\t"
-            ".endr \n\t"
-            //:::
-        );
+
+        //start back porch       
+        wait_ticks(915);//.193644489
         //end back porch
 
-
-        // active video
-        bool belowTop = line > 34;
-        bool aboveBottom = line < 515;
-
-        bool inRange = belowTop & aboveBottom;//not an error, we want a bit op, no short circuit call!
-        
-        //reg = inRange * GPIO_OUT_W1TS_REG + (!inRange) * GPIO_OUT_W1TC_REG;
-        //REG_WRITE(reg, (1<<25));
-        
-        //end active video
-       
-        
-
-        if (inRange) {
-           // int c = XTHAL_GET_CCOUNT();
+        // start active video
+        if (line > 34 && line < 515) {
             volatile uint8_t* mem = vram_buffer + (((line-35)>>1) * 160); 
             doVram(mem, (volatile uint32_t*)GPIO_OUT_REG);
-            //c = XTHAL_GET_CCOUNT();
-        } else {
-             asm volatile(//3954
-            ".rept 4067 \n\t"//3950
-            "nop \n\t"
-            ".endr \n\t"            
-            );
-        }
+        } 
+        
+        wait_ticks(4982);        
+        //end active video
 
+        // start front porch
         // clear video channel
         REG_WRITE(GPIO_OUT_W1TC_REG, (1<<25)|(1<<26)|(1<<27));
-
-        line = line + 1;
-        line = line % VLINES;
-
-        //REG_WRITE(GPIO_OUT_W1TC_REG, (1<<25));
-
-        //start front porch
-        asm volatile(
-            ".rept 101 \n\t"
-            "nop \n\t"
-            ".endr \n\t"
-            //:::
-        );
+        line = (line + 1) % VLINES;
+        wait_ticks(5084);
         //end front porch
     }
  //critical section
