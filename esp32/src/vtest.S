@@ -1,0 +1,45 @@
+	.file	"vram.c"
+	.text
+	.literal_position
+	.literal .LC0, -251658241
+	.literal .LC1, 251658240
+	.align	4
+	.global	doVram
+	.type	doVram, @function
+doVram:
+	entry	sp, 32
+
+	l32i.n	a10, a3, 0
+	l32r	a8, .LC0
+	l32r	a11, .LC1
+	and	a10, a10, a8
+	movi	a9, 0xa0
+
+.L2:
+	l8ui	a8, a2, 0
+	nop # inserted
+	slli	a8, a8, 20
+	and	a8, a8, a11
+	or	a8, a8, a10
+	s32i.n	a8, a3, 0
+	nop
+	nop
+	# padding
+	nop
+	nop
+
+	# inserted
+
+	l8ui	a8, a2, 0
+	addi.n	a2, a2, 1
+	slli	a8, a8, 24
+	and	a8, a8, a11
+	or	a8, a8, a10
+	s32i.n	a8, a3, 0
+
+	nop
+	nop
+
+	addi.n	a9, a9, -1
+	bnez.n	a9, .L2
+	retw.n

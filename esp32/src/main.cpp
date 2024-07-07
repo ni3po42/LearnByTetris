@@ -15,7 +15,7 @@
 #include <driver/gptimer.h>
 #include <driver/rmt_common.h>
 #include <driver/rmt_tx.h>
-
+#include <cmath>
 
 
 // __asm__(
@@ -116,11 +116,15 @@ inline void reset_ticks() {
 }
 
 void setVramPixel(size_t row, size_t col, uint8_t color) {
+    if (row >= 240 || col >= 320 || row < 0 || col < 0) {
+        return;
+    }
+
     size_t index = row * 160 + (col >> 1);
-    if (col & 0x01 == 0) {
-        vram_buffer[index] = (vram_buffer[index] & 0x0F) | ((color << 4) & 0xF0);
+    if ((col & 0x01) == 0) {
+        vram_buffer[index] = (vram_buffer[index] & 0x0F) | ((color << 5) & 0xF0);
     } else {
-        vram_buffer[index] = (vram_buffer[index] & 0xF0) | (color & 0x0F);
+        vram_buffer[index] = (vram_buffer[index] & 0xF0) | ((color << 1) & 0x0F);
     }
 }
 
@@ -128,29 +132,62 @@ void runOnCore2(void* args) {
    
     setCpuFrequencyMhz(160); 
 
-    //test pattern
-    uint8_t val = 0;
-    for(size_t i=0;i<240; i++) {
-       
+    for(size_t j=0;j<240;j++) {
+    for(size_t i=0;i<320; i++) {        
+        setVramPixel(j, i, 0x00);
+    }
+    }
+
+    for(size_t color=0;color<8;color++) {
+        
+        for(size_t c=0;c<40;c++) {
+            for(size_t r=0;r<120;r++) {
+                setVramPixel(r, c + color * 40, color);
+            }        
+        }
+
+    }
+
+    for(size_t color=0;color<7;color++) {        
+        for(size_t c=0;c<320;c++) {
+            for(size_t r=0;r<10;r++) {
+                setVramPixel(r + 120 + (10 * color), c, 7 - color);
+            }        
+        }
+    }
+
+    for(size_t j=0;j<4;j++) {
+    for(size_t i=0;i<40; i++) {        
+        setVramPixel(200 + i, i + j * 40, 0x07);
+        setVramPixel(240 - i, i + j * 40, 0x07);
+    }
+    }
+
+    for(size_t j=0;j<4;j++) {
+    for(float angle = 0; angle < 360; angle++) {
+        int r = round(20*sin(angle * 0.017453291));
+        int c = round(20*cos(angle * 0.017453291));
+        setVramPixel(r+200 + 20, c + 180 + (40 * j), 0x07);
+    }
+    }
+    
+    
+
+    //test pattern    
+    for(size_t i=0;i<240; i++) {       
         //left
-        setVramPixel(i, 0, 0x0E);
+        setVramPixel(i, 0, 0x07);
 
         //right
-        setVramPixel(i, 319, 0x0E);
+        setVramPixel(i, 319, 0x07);
     }
    
-    for(size_t i=0;i<320; i++) {
-       
-    //    size_t row = (i * 3) / 4;
-    //     setVramPixel(row, i, 0x0E);
-    //     setVramPixel(239 - row, i, 0x0E);
-
+    for(size_t i=0;i<320; i++) {       
         // top
-        setVramPixel(0, i, 0x0E);
+        setVramPixel(0, i, 0x07);
 
         // bottom
-        setVramPixel(239, i, 0x0E);
-
+        setVramPixel(239, i, 0x07);
     }
 
     //points to bits 24-31, with 25,26,27 being the target GPIOs
@@ -187,14 +224,13 @@ void runOnCore2(void* args) {
         if (line > 34 && line < 515) {
             volatile uint8_t* mem = vram_buffer + (((line-35)>>1) * 160); 
             doVram(mem, (volatile uint32_t*)GPIO_OUT_REG);
-        } 
+            REG_WRITE(GPIO_OUT_W1TC_REG, (1<<25)|(1<<26)|(1<<27)); // clears all channels
+        }
         
         wait_ticks(4982);        
         //end active video
 
-        // start front porch
-        // clear video channel
-        REG_WRITE(GPIO_OUT_W1TC_REG, (1<<25)|(1<<26)|(1<<27));
+        // start front porch        
         line = (line + 1) % VLINES;
         wait_ticks(5084);
         //end front porch
@@ -262,8 +298,6 @@ void setup()
    gpio_set_direction(GPIO_NUM_25, GPIO_MODE_OUTPUT);
    gpio_set_direction(GPIO_NUM_26, GPIO_MODE_OUTPUT);
    gpio_set_direction(GPIO_NUM_27, GPIO_MODE_OUTPUT);
-
-gpio_set_direction(GPIO_NUM_32, GPIO_MODE_OUTPUT);
 
     // pinMode(GPIO_NUM_5, OUTPUT);
     // pinMode(GPIO_NUM_23, OUTPUT);

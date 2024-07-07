@@ -1,17 +1,17 @@
-#include <stdint.h>
+// #include <stdint.h>
 
-void doVram(volatile uint8_t* ram, volatile uint32_t* gpio) {
+// void doVram(uint8_t* ram, uint32_t* gpio) {
 
-    volatile uint8_t* end = ram + 160;    
-    volatile uint8_t* ramByte = (uint8_t*)gpio + 3;    
-    uint8_t mask = 0x0F & *gpio;
-    uint8_t temp;
+//     uint8_t* end = ram + 160;        
+//     uint32_t mask = 0xF0FFFFFF & *gpio;
     
-    while (ram < end) {
-        temp = *ram;
-        *gpio = mask | (temp << 28);
-        *gpio = mask | (temp << 24);
-        ram++;
-    }
+//     while (ram < end) {   
     
-}
+//         *gpio = mask | ((uint32_t)(*ram & 0xF0) << 20);
+//         asm ("nop \n\t");
+//         *gpio = mask | ((uint32_t)(*ram & 0x0F) << 24);        
+        
+//         ram++;
+//     }
+    
+// }
