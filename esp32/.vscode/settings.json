@@ -10,7 +10,10 @@
         "utilities.h": "c",
         "unity_test_runner.h": "c",
         "unity.h": "c",
-        "periph_ctrl.h": "c"
+        "periph_ctrl.h": "c",
+        "*.inc": "cpp",
+        "istream": "cpp",
+        "ostream": "cpp"
     },
     "cmake.configureOnOpen": false
 }

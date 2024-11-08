@@ -1,12 +1,12 @@
-	.file	"vram.c"
+	.file	"scanline.S"
 	.text
 	.literal_position
 	.literal .LC0, -251658241
 	.literal .LC1, 251658240
 	.align	4
-	.global	doVram
-	.type	doVram, @function
-doVram:
+	.global	processActiveScanline
+	.type	processActiveScanline, @function
+processActiveScanline:
 	entry	sp, 32
 
 	l32i.n	a10, a3, 0

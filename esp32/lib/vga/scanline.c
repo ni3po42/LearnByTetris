@@ -1,6 +1,6 @@
 // #include <stdint.h>
 
-// void doVram(uint8_t* ram, uint32_t* gpio) {
+// void processActiveScanline(uint8_t* ram, uint32_t* gpio) {
 
 //     uint8_t* end = ram + 160;        
 //     uint32_t mask = 0xF0FFFFFF & *gpio;

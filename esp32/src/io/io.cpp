@@ -4,6 +4,7 @@
 #include "board.h"
 #include "piece.h"
 #include "events.h"
+#include "vga.h"
 
 #include "xboxcontroller.h"
 
@@ -15,64 +16,51 @@ extern "C" {
 #endif
 
 static Board boardBuffer;
-static int nextPieceId = -1;
 static XboxController controller;
 
 static void drawText(const char* text, int row, int col) {
-    // if (text == NULL) {
-    //     return;
-    // }
-    // mvprintw(row, col, text);
+    if (text == NULL) {
+        return;
+    }
+    renderMessage(text, row * 10, col * 10, 0x07, 0x08);
 }
 
-static void drawCell(int row, int col, CellData data, int rowOffset, int colOffset) {
-    
-    // int color = (data & COLOR_MASK);
-    
-    // if (color != 0) {
-    //     attron(COLOR_PAIR(color));
-    //     attron(A_REVERSE);
-    // } else {
-    //     attron(COLOR_PAIR(8));
-    // }
-    
-    // mvprintw(row + rowOffset, (col + colOffset) * 2, "  ");
-    
-    // if (color != 0) {
-    //     attroff(A_REVERSE);
-    //     attroff(COLOR_PAIR(color));
-    // } else {
-    //     attroff(COLOR_PAIR(8));
-    // }
+static void drawCell(int row, int col, CellData data, int rowOffset, int colOffset) {    
+    uint8_t color = (data & COLOR_MASK);    
+    renderMessage("@", (row+rowOffset) * 8, (col + colOffset) * 8, color, 0x08);
      
 }
 
 static void drawInteger(int value, int row, int col) {
-    // char str[10];
-    // sprintf(str, "%d", value);
-    // drawText(str, row, col);
+    char str[10];
+    sprintf(str, "%d", value);
+    renderMessage(str, row*10, col*10, 0x07, 0x08);
 }
 
 static void renderNextPiece_erase(int row, int col, CellData unsued) {
-    //drawCell(row, col, EMPTY_CELL_DATA, NEXTPIECE_OFFSET_ROW, NEXTPIECE_OFFSET_COL);
+    drawCell(row, col, EMPTY_CELL_DATA, NEXTPIECE_OFFSET_ROW, NEXTPIECE_OFFSET_COL);
 }
 
 static void renderNextPiece_draw(int row, int col, CellData data) {
-    //drawCell(row, col, data, NEXTPIECE_OFFSET_ROW, NEXTPIECE_OFFSET_COL);
+    drawCell(row, col, data, NEXTPIECE_OFFSET_ROW, NEXTPIECE_OFFSET_COL);
 }
 
-static void renderNextPiece(Piece* nextPieceData) {
+static void renderNextPiece() {
     
-    // if (nextPieceId != getPieceId(nextPieceData.nextPiece)) {
-    //     nextPieceId = getPieceId(nextPieceData.nextPiece);
-        
-    //     pieceScan(nextPieceData.currentPiece, true, renderNextPiece_erase);
-    //     pieceScan(nextPieceData.nextPiece, true, renderNextPiece_draw);    
-    // }
+    Piece* nextPiece = getNextPiece();
+    Piece* currentPiece = getCurrentPiece();
+
+    if (currentPiece) {
+        pieceScan(currentPiece, true, renderNextPiece_erase);        
+    }
+
+    if (nextPiece) {        
+        pieceScan(nextPiece, true, renderNextPiece_draw);    
+    }
 }
 
 static void debugMessage(const char* message) {
-    Serial.write(message);
+    renderMessage(message, 310, 0, 0x07, 0x08);
 }
 
 static void gameBoard() {
@@ -88,29 +76,9 @@ static void gameBoard() {
          int bCell = boardBuffer[scanData.row * BOARD_COLS + scanData.col];
          if (scanData.data != bCell){
              boardBuffer[scanData.row * BOARD_COLS + scanData.col] = scanData.data;
-             //drawCell(scanData.row, scanData.col, scanData.data, BOARD_OFFSET_ROW, BOARD_OFFSET_COL);
+             drawCell(scanData.row, scanData.col, scanData.data, BOARD_OFFSET_ROW, BOARD_OFFSET_COL);
          }
     }
-
-    int index;
-    for(index= 0;index<BOARD_SIZE; index++) {
-        if (index % BOARD_COLS == 0) {            
-            debugMessage("\n");
-        }
-        
-        if ((boardBuffer[index] & (ACTIVE_MASK | STATIC_MASK)) == (ACTIVE_MASK | STATIC_MASK) ) {
-            debugMessage("C");
-        } else if ((boardBuffer[index] & ACTIVE_MASK) == ACTIVE_MASK) {
-            debugMessage("A");
-        } else if ((boardBuffer[index] & STATIC_MASK) == STATIC_MASK) {
-            debugMessage("S");
-        } else {
-            debugMessage(" ");
-        }
-
-    }
-    debugMessage("\n");
-    debugMessage("\n");
 }
 
 static bool btnA = false;
@@ -163,12 +131,20 @@ void handleXboxStateUpdate(const XboxState& state) {
 */
 
 void initInput() {    
+    renderMessage("HERE1", 20, 1, 0x07, 0x00);
     controller.listen(handleXboxStateUpdate);
+    renderMessage("HERE2", 20, 1, 0x07, 0x00);
     controller.start();
-
+    renderMessage("HERE3", 20, 1, 0x07, 0x00);
+   
     while(!controller.isConnected()){
         controller.reconnect();
         delay(500);
+        // sprintf(buffer, "%d", c);
+        
+        // renderMessage(buffer, 14, 2, 0x07, 0x00);
+       
+   
     }
 
     while (controller.isWaiting()) {
@@ -178,77 +154,47 @@ void initInput() {
 
 
 void resetDropInterval(interval_t interval) {
-   
+   //??
 }
 
 
 
-void renderDebug(const char* message) {
-    debugMessage(message);
-    // drawText(message, DEBUG_OFFSET_ROW, DEBUG_OFFSET_COL);
-    // refresh();
+void renderDebug(const char* message) {    
+    drawText(message, DEBUG_OFFSET_ROW, DEBUG_OFFSET_COL);
+     if (message == NULL) {
+        return;
+    }
+    renderMessage(message, DEBUG_OFFSET_ROW * 10, DEBUG_OFFSET_COL * 10, 0x07, 0x00);
 }
 
-void renderClearScreen() {
-    // move(10, 20);
-    // clear();
-    // refresh();
+
+void renderClearScreen() {    
+    clearVRAM();
 }
 
 void renderInit() {
-    Serial.begin(115200);
-    // TickType_t shortDelay = 1;
-
-    // pinMode(32, OUTPUT);
-    // bool high = false;
-    // for(;;) {
-    //     vTaskDelay(shortDelay);
-    //     if (high) {
-    //         high = false;
-    //         REG_SET_BIT(GPIO_OUT_W1TC_REG, GPIO_PIN_REG_32);
-    //         //GPIO_OUT_W1TC_REG
-    //         //digitalWrite(32, HIGH);
-    //     } else {
-    //         high = true;
-    //         REG_CLR_BIT(GPIO_OUT_W1TC_REG, GPIO_PIN_REG_32);
-    //         //digitalWrite(32, LOW);
-    //     }
-    // }
-
-    // keypad(stdscr, TRUE);		/* We get F1, F2 etc..		*/
-	// noecho();			/* Don't echo() while we do getch */
-
-    // start_color();
-
-    // init_pair(1, COLOR_RED, COLOR_BLACK);
-    // init_pair(2, COLOR_GREEN, COLOR_BLACK);
-    // init_pair(3, COLOR_YELLOW, COLOR_BLACK);
-    // init_pair(4, COLOR_BLUE, COLOR_BLACK);
-    // init_pair(5, COLOR_MAGENTA, COLOR_BLACK);
-    // init_pair(6, COLOR_CYAN, COLOR_BLACK);
-    // init_pair(7, COLOR_WHITE, COLOR_BLACK);
-    // init_pair(8, COLOR_BLACK, COLOR_BLACK);
-
-
-    // renderClearScreen();
-    // drawText("SCORE", SCORE_OFFSET_ROW, SCORE_OFFSET_COL);
-    // drawText("LEVEL", LEVEL_OFFSET_ROW, LEVEL_OFFSET_COL);
-    // refresh();
+    vga_init();
     
-    // int i;
-    // for(i = 0; i < BOARD_SIZE; i++) {
-    //     boardBuffer[i] = 0x00;
-    // }
+    renderClearScreen();
+    drawText("SCORE", SCORE_OFFSET_ROW, SCORE_OFFSET_COL);
+    drawText("LEVEL", LEVEL_OFFSET_ROW, LEVEL_OFFSET_COL);
+        
+    int i;
+    for(i = 0; i < BOARD_SIZE; i++) {
+        boardBuffer[i] = 0x00;
+    }
 }
 
 void renderScreen(GameStatus* status) {
     
-    // renderNextPiece(status.nextPieceData);
+    renderNextPiece();
     gameBoard();
-    // drawInteger(status.score, SCORE_OFFSET_ROW + 1, SCORE_OFFSET_COL);
-    // drawInteger(status.level, LEVEL_OFFSET_ROW + 1, LEVEL_OFFSET_COL);
-    // drawText(status.gameover ? "GAME OVER" : NULL, GAMEOVER_OFFSET_ROW, GAMEOVER_OFFSET_COL);
-    // refresh();
+    drawInteger(status->score, SCORE_OFFSET_ROW + 1, SCORE_OFFSET_COL);
+    drawInteger(status->level, LEVEL_OFFSET_ROW + 1, LEVEL_OFFSET_COL);
+    if (status->gameover) {
+        renderMessage("GAME OVER", GAMEOVER_OFFSET_ROW * 10, GAMEOVER_OFFSET_COL * 10 - 4, 0x01, 0x04);
+    }
+    
 }
 
 #ifdef __cplusplus

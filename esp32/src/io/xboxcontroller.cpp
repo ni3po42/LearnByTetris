@@ -1,6 +1,8 @@
 #include <NimBLEDevice.h>
 #include "xboxcontroller.h"
 
+#include <vga.h>
+
 static uint8_t directionalMap[9] = {
     //UDRL
     0b0000,
@@ -170,14 +172,21 @@ struct XboxController::XboxControllerImpl {
     State connectionState = State::None;
 
     void start() {
+        renderMessage("HERE4", 20, 1, 0x07, 0x00);
         NimBLEDevice::setScanFilterMode(CONFIG_BTDM_SCAN_DUPL_TYPE_DEVICE);
+        renderMessage("HERE!", 20, 1, 0x07, 0x00);
         NimBLEDevice::init("TETRIS ESP32");
+        renderMessage("HERE5", 20, 1, 0x07, 0x00);
         NimBLEDevice::setOwnAddrType(BLE_OWN_ADDR_PUBLIC);
         NimBLEDevice::setSecurityAuth(true, false, false);
+        renderMessage("HERE6", 20, 1, 0x07, 0x00);
         NimBLEDevice::setPower(ESP_PWR_LVL_P9);
+
+        
     }
 
     bool connectToServer() {
+        
         if (advertisedDevice == nullptr) {
             return false;
         }
